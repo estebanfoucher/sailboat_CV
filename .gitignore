@@ -1,3 +1,4 @@
 youtube_data
-labeled_data
-*.pt
+label_studio_data
+./*.pt
+.env
