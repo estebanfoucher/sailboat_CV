@@ -1,0 +1,9 @@
+# YOLO dataset configuration
+train: train/images
+val: val/images
+
+# Number of classes
+nc: 1
+
+# Class names
+names: ['pennon']

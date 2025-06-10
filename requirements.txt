@@ -1,0 +1,5 @@
+yt-dlp
+opencv-python
+tqdm
+label-studio
+label-studio-ml

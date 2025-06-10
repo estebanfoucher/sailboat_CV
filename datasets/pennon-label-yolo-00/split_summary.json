@@ -1,0 +1,11 @@
+{
+  "source_dataset": "labeled_data/pennon-label-yolo-00",
+  "output_directory": "datasets/pennon-label-yolo-00",
+  "total_images": 49,
+  "train_images": 39,
+  "val_images": 10,
+  "train_copied": 39,
+  "val_copied": 10,
+  "test_size": 0.2,
+  "random_state": 42
+}
