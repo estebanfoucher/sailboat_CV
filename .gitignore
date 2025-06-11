@@ -2,3 +2,4 @@ youtube_data
 label_studio_data
 ./*.pt
 .env
+youtube_extractor.log
