@@ -16,7 +16,6 @@ TRAIN_SPLIT = float(os.getenv('TRAIN_SPLIT', '0.8'))  # Default to 80% for train
 VAL_SPLIT = float(os.getenv('VAL_SPLIT', '0.1'))    # Default to 10% for validation
 TEST_SPLIT = float(os.getenv('TEST_SPLIT', '0.1'))   # Default to 10% for testing
 
-
 # Ensure splits sum to 1
 assert abs(TRAIN_SPLIT + VAL_SPLIT + TEST_SPLIT - 1.0) < 1e-6, "Split ratios must sum to 1"
 
@@ -62,9 +61,14 @@ def split_yolo_dataset(base_dir, output_dir=None, val_size=None, test_size=None,
     test_dir = output_path / 'test'
     
     # Create directories if they don't exist
-    for split_dir in [train_dir, val_dir, test_dir]:
+    for split_dir in [train_dir, val_dir]:
         (split_dir / 'images').mkdir(parents=True, exist_ok=True)
         (split_dir / 'labels').mkdir(parents=True, exist_ok=True)
+    
+    # Only create test directory if test_size > 0
+    if test_size > 0:
+        (test_dir / 'images').mkdir(parents=True, exist_ok=True)
+        (test_dir / 'labels').mkdir(parents=True, exist_ok=True)
     
     # Get list of image files (common image extensions)
     image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
@@ -82,20 +86,39 @@ def split_yolo_dataset(base_dir, output_dir=None, val_size=None, test_size=None,
     random.seed(random_state)
     random.shuffle(image_files)
     
-    # First split into train and temp (val + test)
-    train_files, temp_files = train_test_split(
-        image_files,
-        test_size=(val_size + test_size),
-        random_state=random_state
-    )
-    
-    # Then split temp into val and test
-    relative_val_size = val_size / (val_size + test_size)
-    val_files, test_files = train_test_split(
-        temp_files,
-        test_size=(test_size / (val_size + test_size)),
-        random_state=random_state
-    )
+    # Handle different split scenarios
+    if test_size == 0:
+        # Only split into train and val
+        if val_size > 0:
+            train_files, val_files = train_test_split(
+                image_files,
+                test_size=val_size,
+                random_state=random_state
+            )
+            test_files = []
+        else:
+            # No validation or test split
+            train_files = image_files
+            val_files = []
+            test_files = []
+    else:
+        # First split into train and temp (val + test)
+        train_files, temp_files = train_test_split(
+            image_files,
+            test_size=(val_size + test_size),
+            random_state=random_state
+        )
+        
+        # Then split temp into val and test
+        if val_size > 0:
+            val_files, test_files = train_test_split(
+                temp_files,
+                test_size=(test_size / (val_size + test_size)),
+                random_state=random_state
+            )
+        else:
+            val_files = []
+            test_files = temp_files
     
     print(f"Train set: {len(train_files)} images")
     print(f"Validation set: {len(val_files)} images")
@@ -103,6 +126,10 @@ def split_yolo_dataset(base_dir, output_dir=None, val_size=None, test_size=None,
     
     def copy_files_with_validation(files, dest_dir, split_name):
         """Copy files and validate that corresponding labels exist."""
+        if not files:  # Skip if no files to copy
+            print(f"No files to copy for {split_name} set")
+            return 0
+            
         missing_labels = []
         copied_count = 0
         
@@ -136,7 +163,7 @@ def split_yolo_dataset(base_dir, output_dir=None, val_size=None, test_size=None,
     # Copy training and validation files
     train_copied = copy_files_with_validation(train_files, train_dir, "training")
     val_copied = copy_files_with_validation(val_files, val_dir, "validation")
-    test_copied = copy_files_with_validation(test_files, test_dir, "test")
+    test_copied = copy_files_with_validation(test_files, test_dir, "test") if test_size > 0 else 0
     
     # Create a summary report
     summary = {
@@ -154,6 +181,7 @@ def split_yolo_dataset(base_dir, output_dir=None, val_size=None, test_size=None,
         "test_split": test_size,
         "random_state": random_state
     }
+    
     # Copy additional files to the root of output directory (not to train/val subfolders)
     if additional_files is None:
         additional_files = ['classes.txt', 'notes.json', 'data.yaml', 'dataset.yaml']
@@ -175,19 +203,26 @@ def split_yolo_dataset(base_dir, output_dir=None, val_size=None, test_size=None,
             with open(classes_file, 'r') as f:
                 classes = [line.strip() for line in f.readlines() if line.strip()]
             
-            data_yaml_content = f"""# YOLO dataset configuration
-train: {output_path}/train/images
-val: {output_path}/val/images
-test: {output_path}/test/images
-
-# Number of classes
-nc: {len(classes)}
-
-# Class names
-names: {classes}
-"""
+            # Prepare paths for data.yaml
+            data_yaml_content = ["# YOLO dataset configuration",
+                               f"train: {output_path}/train/images",
+                               f"val: {output_path}/val/images"]
+            
+            # Only add test path if test split exists
+            if test_size > 0:
+                data_yaml_content.append(f"test: {output_path}/test/images")
+            
+            data_yaml_content.extend([
+                "",
+                f"# Number of classes",
+                f"nc: {len(classes)}",
+                "",
+                f"# Class names",
+                f"names: {classes}"
+            ])
+            
             with open(data_yaml_path, 'w') as f:
-                f.write(data_yaml_content)
+                f.write('\n'.join(data_yaml_content))
             print("Created data.yaml file")
         else:
             print("Warning: No classes.txt found, couldn't create data.yaml")
