@@ -1,0 +1,10 @@
+# YOLO dataset configuration
+train: datasets/pennon-label-yolo-01/train/images
+val: datasets/pennon-label-yolo-01/val/images
+test: datasets/pennon-label-yolo-01/test/images
+
+# Number of classes
+nc: 1
+
+# Class names
+names: ['pennon']
