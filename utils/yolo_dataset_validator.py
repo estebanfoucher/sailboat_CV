@@ -89,7 +89,20 @@ def validate_yolo_dataset(dataset_path: str) -> bool:
         logger.error(f"Found {len(images_without_labels)} images without labels:")
         for img in sorted(images_without_labels):
             logger.error(f"  Missing label for image: {img}")
-    
+        # Prompt user for suppression
+        suppress = input("Would you like to suppress (move) these images? (y/n): ").strip().lower()
+        if suppress == 'y':
+            suppressed_dir = images_dir / 'suppressed_images'
+            suppressed_dir.mkdir(exist_ok=True)
+            for img in sorted(images_without_labels):
+                # Find the actual file with extension
+                for ext in image_extensions:
+                    img_file = images_dir / f"{img}{ext}"
+                    if img_file.exists():
+                        img_file.rename(suppressed_dir / img_file.name)
+                        logger.info(f"Suppressed image: {img_file.name}")
+                        break
+
     # Check for labels without images
     labels_without_images = label_files - image_files
     if labels_without_images:
@@ -110,7 +123,7 @@ if __name__ == "__main__":
     logger = setup_logging()
     
     # Default to the pennon-label-yolo-00 directory
-    default_dataset_path = "label_studio_data/pennon-label-yolo-01"
+    default_dataset_path = "./docker/label_studio/data/export/yolo/pennon-label-yolo-01"
     dataset_path = sys.argv[1] if len(sys.argv) > 1 else default_dataset_path
     
     logger.info(f"Validating YOLO dataset at: {dataset_path}")

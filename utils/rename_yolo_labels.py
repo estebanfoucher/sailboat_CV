@@ -142,30 +142,29 @@ def rename_label_files(labels_folder_path, images_folder_path):
     for label_file in labels_path.glob('*.txt'):
         if label_file.name == 'classes.txt':  # Skip classes.txt if it exists
             continue
-            
+        
         # Extract frame part from label name
         if '__' not in label_file.stem:
+            logger.warning(f"Label {label_file.name} doesn't follow task_id__frame convention")
             errors.append(f"Label file {label_file.name} doesn't follow task_id__frame convention")
             continue
-            
         frame_part = label_file.stem.split('__')[1]
-        
-        # Find matching image
-        if frame_part in image_frame_map:
-            new_name = f"{image_frame_map[frame_part]}.txt"
-            new_path = label_file.parent / new_name
-            
-            try:
-                # If the destination file already exists, remove it
-                if new_path.exists():
-                    new_path.unlink()
-                label_file.rename(new_path)
-                renamed_count += 1
-                logger.info(f"Renamed: {label_file.name} -> {new_name}")
-            except Exception as e:
-                errors.append(f"Error renaming {label_file.name} to {new_name}: {str(e)}")
-        else:
-            errors.append(f"No matching image found for frame {frame_part} from {label_file.name}")
+        # Find corresponding image name
+        if frame_part not in image_frame_map:
+            errors.append(f"No matching image found for label {label_file.name} (frame {frame_part})")
+            continue
+        new_stem = image_frame_map[frame_part]
+        new_name = f"{new_stem}.txt"
+        new_path = label_file.parent / new_name
+        try:
+            # If the destination file already exists, remove it
+            if new_path.exists():
+                new_path.unlink()
+            label_file.rename(new_path)
+            renamed_count += 1
+            logger.info(f"Renamed: {label_file.name} -> {new_name}")
+        except Exception as e:
+            errors.append(f"Error renaming {label_file.name} to {new_name}: {str(e)}")
 
     # Print summary
     logger.info(f"\nRenamed {renamed_count} files")
@@ -177,8 +176,8 @@ def rename_label_files(labels_folder_path, images_folder_path):
     logger.info(f"\nBackup of original files saved in: {backup_path}")
 
 if __name__ == "__main__":
-    labels_folder_path = './label_studio_data/pennon-label-yolo-01/labels'
-    images_folder_path = './label_studio_data/pennon-label-yolo-01/images'
+    labels_folder_path = 'docker/label_studio/data/export/yolo/pennon-label-yolo-01/labels'
+    images_folder_path = './docker/label_studio/data/export/yolo/pennon-label-yolo-01/images'
     
     logger.info(f"Starting label file processing...")
     rename_label_files(labels_folder_path, images_folder_path) 
