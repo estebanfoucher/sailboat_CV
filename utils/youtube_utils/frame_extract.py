@@ -70,16 +70,28 @@ class YouTubeFrameExtractor:
             dir_path.mkdir(parents=True, exist_ok=True)
         
         logger.info(f"Répertoire de sortie: {self.output_dir}")
-    def download_video(self, url: str, quality: str = "720p") -> Optional[Dict]:
+    def download_video(self, url: str, quality: str = "1080p", cookies: Optional[str] = None) -> Optional[Dict]:
         try:
+            # Map quality to height
+            quality_map = {
+                "360p": 360,
+                "480p": 480,
+                "720p": 720,
+                "1080p": 1080,
+                "2k": 1440,
+                "4k": 2160
+            }
+            height = quality_map.get(quality, 1080)
             ydl_opts = {
-                'format': f'bestvideo[height<={quality[:-1]}]+bestaudio/best[height<={quality[:-1]}]',
+                'format': f'bestvideo[height<={height}]+bestaudio/best[height<={height}]',
                 'outtmpl': str(self.videos_dir / '%(id)s.%(ext)s'),
                 'writeinfojson': False,
                 'writethumbnail': True,
                 'writesubtitles': False,
                 'writeautomaticsub': False,
             }
+            if cookies:
+                ydl_opts['cookies'] = cookies
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 logger.info(f"Extracting metadata: {url}")
@@ -140,13 +152,14 @@ class YouTubeFrameExtractor:
             return None
 
     
-    def extract_frames(self, video_id: str, frame_interval: int = 30, 
+    def extract_frames(self, video_id: str, url: str, frame_interval: int = 30, 
                       max_frames: Optional[int] = None) -> int:
         """
         Extrait les frames d'une vidéo
         
         Args:
             video_id: ID de la vidéo
+            url: URL de la vidéo
             frame_interval: Intervalle entre les frames (en nombre de frames)
             max_frames: Nombre maximum de frames à extraire
         
@@ -161,10 +174,6 @@ class YouTubeFrameExtractor:
             if not video_file:
                 logger.error(f"Fichier vidéo non trouvé pour {video_id}")
                 return 0
-            
-            # Créer le dossier de frames
-            frames_output_dir = self.frames_dir / video_id
-            frames_output_dir.mkdir(exist_ok=True)
             
             # Ouvrir la vidéo
             cap = cv2.VideoCapture(str(video_file))
@@ -196,8 +205,8 @@ class YouTubeFrameExtractor:
                     
                     # Nom du fichier frame
                     timestamp = frame_idx / fps
-                    frame_filename = f"frame_{frame_idx:08d}_{timestamp:.2f}s.jpg"
-                    frame_path = frames_output_dir / frame_filename
+                    frame_filename = f"frame_{video_id}_{timestamp:.2f}s.jpg"
+                    frame_path = self.frames_dir / frame_filename
                     
                     # Sauvegarde de la frame
                     cv2.imwrite(str(frame_path), frame)
@@ -222,6 +231,7 @@ class YouTubeFrameExtractor:
             with open(frames_metadata_file, 'w', encoding='utf-8') as f:
                 json.dump({
                     "video_id": video_id,
+                    "url": url,
                     "total_frames_extracted": extracted_count,
                     "extraction_date": datetime.now().isoformat(),
                     "frame_interval": frame_interval,
@@ -239,7 +249,7 @@ class YouTubeFrameExtractor:
             return 0
     
     def process_urls(self, urls: List[str], quality: str = "720p", 
-                    frame_interval: int = 30, max_frames: Optional[int] = None) -> Dict:
+                    frame_interval: int = 30, max_frames: Optional[int] = None, cookies: Optional[str] = None) -> Dict:
         """
         Traite une liste d'URLs YouTube
         
@@ -248,6 +258,7 @@ class YouTubeFrameExtractor:
             quality: Qualité vidéo
             frame_interval: Intervalle entre frames
             max_frames: Nombre max de frames par vidéo
+            cookies: Chemin vers le fichier cookies.txt pour l'authentification YouTube
         
         Returns:
             Dictionnaire avec les résultats
@@ -266,7 +277,7 @@ class YouTubeFrameExtractor:
             logger.info(f"[{i}/{len(urls)}] Traitement: {url}")
             
             # Téléchargement
-            metadata = self.download_video(url, quality)
+            metadata = self.download_video(url, quality, cookies=cookies)
             if not metadata:
                 results["errors"].append({"url": url, "error": "Échec téléchargement"})
                 continue
@@ -274,6 +285,7 @@ class YouTubeFrameExtractor:
             # Extraction des frames
             frames_count = self.extract_frames(
                 metadata["video_id"], 
+                url,
                 frame_interval=frame_interval,
                 max_frames=max_frames
             )
@@ -368,12 +380,13 @@ def main():
     parser.add_argument("--urls", "-u", nargs="+", help="URLs YouTube à traiter")
     parser.add_argument("--file", "-f", help="Fichier contenant les URLs (une par ligne)")
     parser.add_argument("--output", "-o", default="./youtube_data", help="Répertoire de sortie")
-    parser.add_argument("--quality", "-q", default="720p", choices=["360p", "480p", "720p", "1080p"], 
+    parser.add_argument("--quality", "-q", default="720p", choices=["360p", "480p", "720p", "1080p", "2k", "4k"], 
                        help="Qualité vidéo")
     parser.add_argument("--interval", "-i", type=int, default=30, 
                        help="Intervalle entre frames (en nombre de frames)")
     parser.add_argument("--max-frames", "-m", type=int, help="Nombre maximum de frames par vidéo")
     parser.add_argument("--stats", action="store_true", help="Afficher les statistiques")
+    parser.add_argument("--cookies", help="Chemin vers le fichier cookies.txt pour l'authentification YouTube")
     
     args = parser.parse_args()
     
@@ -416,7 +429,8 @@ def main():
         urls=urls,
         quality=args.quality,
         frame_interval=args.interval,
-        max_frames=args.max_frames
+        max_frames=args.max_frames,
+        cookies=args.cookies
     )
     
     # Résumé final

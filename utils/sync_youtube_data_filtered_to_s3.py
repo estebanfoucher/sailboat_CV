@@ -10,8 +10,8 @@ if not AWS_BUCKET_VERSION:
     sys.exit(1)
 
 BUCKET_NAME = f"bucket-sail-{AWS_BUCKET_VERSION}"
-LOCAL_DIR = "youtube_data_filtered/"
-S3_PATH = f"s3://{BUCKET_NAME}/youtube_data_filtered/"
+LOCAL_DIR = "youtube_data_filtered/frames/"
+S3_PATH = f"s3://{BUCKET_NAME}/frames/"
 
 cmd = [
     "aws", "s3", "sync",
