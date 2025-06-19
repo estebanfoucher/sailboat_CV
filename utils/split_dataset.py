@@ -238,11 +238,12 @@ def split_yolo_dataset(base_dir, output_dir=None, val_size=None, test_size=None,
 
 # Example usage
 if __name__ == "__main__":
-    folder_name = f'pennon-label-yolo-{DATASET_VERSION}'
-    # Define paths
-    base_dir = Path(LABEL_STUDIO_DATA_PATH) / folder_name
-    output_dir = Path(DATASET_PATH) / f'{folder_name}'
-    
+    import sys
+    if len(sys.argv) < 2:
+        print("Usage: python split_dataset.py <dataset_path> [output_dir]")
+        sys.exit(1)
+    base_dir = Path(sys.argv[1])
+    output_dir = Path(sys.argv[2]) if len(sys.argv) > 2 else None
     try:
         summary = split_yolo_dataset(
             base_dir=base_dir,
@@ -253,6 +254,5 @@ if __name__ == "__main__":
         print("\nSplit Summary:")
         for key, value in summary.items():
             print(f"  {key}: {value}")
-            
     except Exception as e:
         print(f"Error: {e}")

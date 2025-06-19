@@ -123,7 +123,7 @@ if __name__ == "__main__":
     logger = setup_logging()
     
     # Default to the pennon-label-yolo-00 directory
-    default_dataset_path = "./docker/label_studio/data/export/yolo/pennon-label-yolo-01"
+    default_dataset_path = "./docker/label_studio/data/export/yolo/pennon-label-yolo-02_extends_pennon-label-yolo-01"
     dataset_path = sys.argv[1] if len(sys.argv) > 1 else default_dataset_path
     
     logger.info(f"Validating YOLO dataset at: {dataset_path}")
