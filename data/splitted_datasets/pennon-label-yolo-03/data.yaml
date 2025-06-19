@@ -1,6 +1,6 @@
 # YOLO dataset configuration
-train: datasets/pennon-label-yolo-02/train/images
-val: datasets/pennon-label-yolo-02/val/images
+train: /content/sailboat_CV/data/splitted_datasets/pennon-label-yolo-03/train/images
+val: /content/sailboat_CV/data/splitted_datasets/pennon-label-yolo-03/val/images
 
 # Number of classes
 nc: 1
