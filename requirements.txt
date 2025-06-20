@@ -3,3 +3,5 @@ opencv-python
 tqdm
 label-studio
 label-studio-ml
+ultralytics
+supervision
