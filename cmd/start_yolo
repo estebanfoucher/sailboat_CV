@@ -1,3 +1,0 @@
-#bin/bash
-
-(cd docker/yolo && docker compose up --build -d)

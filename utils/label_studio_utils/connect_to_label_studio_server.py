@@ -22,4 +22,3 @@ else:
     logger.warning(
         f"Could not verify connection to Label Studio server. Status: {connection_status}"
     )
-
