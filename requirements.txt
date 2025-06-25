@@ -6,3 +6,4 @@ label-studio-ml
 ultralytics
 supervision
 label-studio-sdk
+numpy
