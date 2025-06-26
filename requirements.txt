@@ -7,3 +7,4 @@ ultralytics
 supervision
 label-studio-sdk
 numpy
+filetype
