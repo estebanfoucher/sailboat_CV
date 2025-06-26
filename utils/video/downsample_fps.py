@@ -1,24 +1,5 @@
 import argparse
-import subprocess
-import os
-
-
-def downsample_fps(input_path, output_path=None, fps=25):
-    if not os.path.exists(input_path):
-        raise FileNotFoundError(f"Input file not found: {input_path}")
-    if output_path is None:
-        base, ext = os.path.splitext(input_path)
-        output_path = f"{base}_fps{fps}{ext}"
-    cmd = [
-        "ffmpeg",
-        "-i", input_path,
-        "-r", str(fps),
-        "-y",  # Overwrite output file without asking
-        output_path
-    ]
-    print(f"Running: {' '.join(cmd)}")
-    subprocess.run(cmd, check=True)
-    print(f"Saved downsampled video to {output_path}")
+from video_utils import downsample_fps
 
 
 def main():
