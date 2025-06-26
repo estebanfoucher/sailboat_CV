@@ -2,10 +2,8 @@ youtube_data
 label_studio_data
 ./*.pt
 .env
-*.log
 *youtube_cookies.txt
 youtube_data_filtered*
 runs/detect/track*
 .venv
 output.mp4
-*wheels

@@ -1,0 +1,5 @@
+link:https://pypi.jetson-ai-lab.dev/jp6/cu126
+
+onnxruntime_gpu-1.22.0-cp310-cp310-linux_aarch64.whl
+torch-2.7.0-cp310-cp310-linux_aarch64.whl
+torchvision-0.22.0-cp310-cp310-linux_aarch64.whl

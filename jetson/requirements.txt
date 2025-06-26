@@ -1,0 +1,3 @@
+onnx
+onnxslim
+onnxruntime-gpu

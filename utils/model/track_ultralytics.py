@@ -1,5 +1,5 @@
 from ultralytics import YOLO
 
-model = YOLO('docker/yolo/models/custom-03.pt')
+model = YOLO('runs/detect/train-03/weights/best.engine')
 
-results = model.track(source='data/videos/2Ce-CKKCtV4_38.0_39.0.mkv', show=True, tracker='trackers/bytetrack.yaml', save=True, conf=0.45)
+results = model.track(source='data/videos/example/2Ce-CKKCtV4_35.0_40.0.mkv', show=True, tracker='trackers/bytetrack.yaml', save=True, conf=0.45)
