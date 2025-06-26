@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Simple Image Resolution Counter
+Image Source Counter
 
-Counts images by resolution (height x width) in a folder.
+Counts images by their source video ID in a folder.
 
 Usage:
-    python image_resolution_report.py /path/to/images/folder
+    python image_source_report.py /path/to/images/folder
 """
 
 import argparse
@@ -16,10 +16,10 @@ from loguru import logger
 
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from utils.images.image_utils import get_image_resolution, is_image_file
+from utils.images.image_utils import is_image_file, get_id_string_and_time_sec
 
-def count_resolutions(folder_path):
-    """Count images by resolution in a folder."""
+def count_sources(folder_path):
+    """Count images by source video ID in a folder."""
     folder_path = Path(folder_path)
     
     if not folder_path.exists():
@@ -30,7 +30,7 @@ def count_resolutions(folder_path):
         logger.error(f"Error: Path is not a directory: {folder_path}")
         return
     
-    resolution_counter = Counter()
+    source_counter = Counter()
     total_files = 0
     processed_files = 0
     
@@ -39,14 +39,14 @@ def count_resolutions(folder_path):
         for file in files:
             if is_image_file(file):
                 total_files += 1
-                image_path = os.path.join(root, file)
-                resolution = get_image_resolution(image_path)
-                if resolution:
-                    width, height = resolution
-                    # Format as heightxwidth
-                    resolution_str = f"{height}x{width}"
-                    resolution_counter[resolution_str] += 1
+                try:
+                    image_info = get_id_string_and_time_sec(file)
+                    source_id = image_info['id_string']
+                    source_counter[source_id] += 1
                     processed_files += 1
+                except (IndexError, KeyError):
+                    logger.warning(f"Skipping malformed filename: {file}")
+                    continue
     
     if processed_files == 0:
         logger.warning("No valid images found!")
@@ -55,17 +55,17 @@ def count_resolutions(folder_path):
     logger.info(f"Found {total_files} image files")
     logger.info(f"Successfully processed {processed_files} images")
     
-    print("\nResolution distribution:")
-    print("Resolution (height x width) | Count")
+    print("\nSource video distribution:")
+    print("Video ID                    | Frame Count")
     print("-" * 40)
     
-    # Sort by resolution string for consistent output
-    for resolution in sorted(resolution_counter.keys()):
-        count = resolution_counter[resolution]
-        print(f"{resolution:<25} | {count}")
+    # Sort by video ID for consistent output
+    for source_id in sorted(source_counter.keys()):
+        count = source_counter[source_id]
+        print(f"{source_id:<25} | {count}")
     
     # Add total line
-    total_count = sum(resolution_counter.values())
+    total_count = sum(source_counter.values())
     print("-" * 40)
     print(f"{'TOTAL':<25} | {total_count}")
 
@@ -73,7 +73,7 @@ def count_resolutions(folder_path):
 def main():
     """Main function."""
     parser = argparse.ArgumentParser(
-        description="Count images by resolution in a folder"
+        description="Count images by source video ID in a folder"
     )
     
     parser.add_argument('folder_path', 
@@ -81,8 +81,8 @@ def main():
     
     args = parser.parse_args()
     
-    count_resolutions(args.folder_path)
+    count_sources(args.folder_path)
 
 
 if __name__ == '__main__':
-    main()
+    main() 
