@@ -60,7 +60,7 @@ class ExtractionStats:
 class FrameExtractor:
     """Universal frame extractor with enhanced batch processing"""
     
-    def __init__(self, output_dir: str = "./frames", max_workers: int = 4, 
+    def __init__(self, output_dir: str = "./frames", max_workers: int = 4,
                  create_subdirs: bool = True, resume_enabled: bool = True):
         """
         Initialize the frame extractor
@@ -76,13 +76,17 @@ class FrameExtractor:
         self.create_subdirs = create_subdirs
         self.resume_enabled = resume_enabled
         
-        # Create output directory
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        # Track directory processing context
+        self.processing_directory = None
         
-        # State management for resume capability
+        # Only create output directory for single file processing
+        # Directory processing will create its own structure
+        if not self.create_subdirs:
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # State management for resume capability - only create default state dir for single files
         self.state_dir = self.output_dir / ".extraction_state"
-        if self.resume_enabled:
-            self.state_dir.mkdir(exist_ok=True)
+        # Don't create state directory in constructor - create it when needed
         
         # Statistics tracking
         self.stats = ExtractionStats()
@@ -179,32 +183,51 @@ class FrameExtractor:
             Output directory path for this video's frames
         """
         if self.create_subdirs and relative_to:
-            # Create subdirectory structure mirroring input
+            # When processing a directory, put frames in video_frames_extracted/
+            # at the same location as the video directory
+            base_output_dir = relative_to.parent / "video_frames_extracted"
             relative_path = video_path.relative_to(relative_to)
             video_subdir = relative_path.parent / video_path.stem
-            output_path = self.output_dir / video_subdir
+            output_path = base_output_dir / video_subdir
         else:
-            # Simple subdirectory with video name
+            # Simple subdirectory with video name (single file processing)
             output_path = self.output_dir / video_path.stem
         
         output_path.mkdir(parents=True, exist_ok=True)
         return output_path
 
-    def _save_extraction_state(self, state: FrameExtractionState):
+    def _get_state_dir(self, video_path: Path, relative_to: Optional[Path] = None) -> Path:
+        """Get the appropriate state directory based on processing context"""
+        if self.create_subdirs and relative_to:
+            # When processing a directory, put state in video_frames_extracted/
+            base_output_dir = relative_to.parent / "video_frames_extracted"
+            state_dir = base_output_dir / ".extraction_state"
+        else:
+            # Single file processing uses default state directory
+            state_dir = self.state_dir
+        
+        if self.resume_enabled:
+            state_dir.mkdir(parents=True, exist_ok=True)
+        return state_dir
+
+    def _save_extraction_state(self, state: FrameExtractionState, relative_to: Optional[Path] = None):
         """Save extraction state for resume capability"""
         if not self.resume_enabled:
             return
         
-        state_file = self.state_dir / f"{Path(state.video_path).stem}.json"
+        video_path = Path(state.video_path)
+        state_dir = self._get_state_dir(video_path, relative_to)
+        state_file = state_dir / f"{video_path.stem}.json"
         with open(state_file, 'w', encoding='utf-8') as f:
             json.dump(asdict(state), f, indent=2)
 
-    def _load_extraction_state(self, video_path: Path) -> Optional[FrameExtractionState]:
+    def _load_extraction_state(self, video_path: Path, relative_to: Optional[Path] = None) -> Optional[FrameExtractionState]:
         """Load extraction state for resume capability"""
         if not self.resume_enabled:
             return None
         
-        state_file = self.state_dir / f"{video_path.stem}.json"
+        state_dir = self._get_state_dir(video_path, relative_to)
+        state_file = state_dir / f"{video_path.stem}.json"
         if not state_file.exists():
             return None
         
@@ -216,21 +239,22 @@ class FrameExtractor:
             logger.warning(f"Could not load state for {video_path}: {e}")
             return None
 
-    def _should_skip_video(self, video_path: Path, output_path: Path) -> bool:
+    def _should_skip_video(self, video_path: Path, output_path: Path, relative_to: Optional[Path] = None) -> bool:
         """Check if video should be skipped (already processed)"""
         if not self.resume_enabled:
             return False
         
-        state = self._load_extraction_state(video_path)
+        state = self._load_extraction_state(video_path, relative_to)
         if state and state.status == 'completed':
             logger.info(f"Skipping completed video: {video_path.name}")
             return True
         
         return False
 
-    def extract_frames(self, video_path: Union[str, Path], step: int = 1, 
-                      max_frames: Optional[int] = None, start_time: float = 0, 
-                      end_time: Optional[float] = None, output_path: Optional[Path] = None) -> int:
+    def extract_frames(self, video_path: Union[str, Path], step: int = 1,
+                      max_frames: Optional[int] = None, start_time: float = 0,
+                      end_time: Optional[float] = None, output_path: Optional[Path] = None,
+                      relative_to: Optional[Path] = None) -> int:
         """
         Extract frames from a single video
         
@@ -241,6 +265,7 @@ class FrameExtractor:
             start_time: Start time in seconds
             end_time: End time in seconds (None for end of video)
             output_path: Custom output path (None for auto-generated)
+            relative_to: Base directory for relative path calculation
             
         Returns:
             Number of frames extracted
@@ -257,10 +282,14 @@ class FrameExtractor:
             
             # Determine output path
             if output_path is None:
-                output_path = self._get_output_path(video_path)
+                output_path = self._get_output_path(video_path, relative_to)
+            
+            # For single file processing, ensure the output directory exists
+            if relative_to is None:
+                self.output_dir.mkdir(parents=True, exist_ok=True)
             
             # Check if we should skip this video
-            if self._should_skip_video(video_path, output_path):
+            if self._should_skip_video(video_path, output_path, relative_to):
                 self.stats.skipped_videos += 1
                 return 0
             
@@ -327,7 +356,7 @@ class FrameExtractor:
                         state.extracted_frames = extracted_count
                         state.last_processed_frame = frame_idx
                         if i % 50 == 0:  # Save state every 50 frames
-                            self._save_extraction_state(state)
+                            self._save_extraction_state(state, relative_to)
                     else:
                         logger.warning(f"Failed to save frame {frame_filename}")
                     
@@ -338,7 +367,7 @@ class FrameExtractor:
             # Update final state
             state.extracted_frames = extracted_count
             state.status = 'completed'
-            self._save_extraction_state(state)
+            self._save_extraction_state(state, relative_to)
             
             # Update statistics
             extraction_time = time.time() - start_extraction_time
@@ -356,12 +385,12 @@ class FrameExtractor:
             if 'state' in locals():
                 state.status = 'failed'
                 state.error_message = str(e)
-                self._save_extraction_state(state)
+                self._save_extraction_state(state, relative_to)
             
             self.stats.failed_videos += 1
             return 0
 
-    def extract_from_videos(self, video_paths: List[Path], step: int = 1, 
+    def extract_from_videos(self, video_paths: List[Path], step: int = 1,
                            max_frames: Optional[int] = None, start_time: float = 0,
                            end_time: Optional[float] = None) -> Dict:
         """
@@ -432,6 +461,99 @@ class FrameExtractor:
         
         return results
 
+    def extract_from_videos_with_context(self, video_paths: List[Path], video_dir: Path, step: int = 1,
+                                       max_frames: Optional[int] = None, start_time: float = 0,
+                                       end_time: Optional[float] = None) -> Dict:
+        """
+        Extract frames from multiple videos with directory context for proper output placement
+        
+        Args:
+            video_paths: List of video file paths
+            video_dir: Directory context for output placement
+            step: Extract every Nth frame
+            max_frames: Maximum frames per video
+            start_time: Start time in seconds
+            end_time: End time in seconds
+            
+        Returns:
+            Dictionary with processing results
+        """
+        if not video_paths:
+            logger.warning("No video paths provided")
+            return {"success": [], "errors": [], "total_frames": 0}
+        
+        results = {"success": [], "errors": [], "total_frames": 0}
+        batch_start_time = time.time()
+        
+        logger.info(f"Starting batch extraction: {len(video_paths)} videos, {self.max_workers} workers")
+        
+        # Process videos in parallel
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # Submit all tasks with directory context
+            future_to_video = {
+                executor.submit(
+                    self.extract_frames_with_context, video_path, video_dir, step, max_frames, start_time, end_time
+                ): video_path for video_path in video_paths
+            }
+            
+            # Process completed tasks
+            with tqdm(total=len(video_paths), desc="Processing videos") as pbar:
+                for future in as_completed(future_to_video):
+                    video_path = future_to_video[future]
+                    try:
+                        frames_extracted = future.result()
+                        if frames_extracted > 0:
+                            results["success"].append({
+                                "video_path": str(video_path),
+                                "frames_extracted": frames_extracted
+                            })
+                            results["total_frames"] += frames_extracted
+                        else:
+                            results["errors"].append({
+                                "video_path": str(video_path),
+                                "error": "No frames extracted"
+                            })
+                    except Exception as e:
+                        results["errors"].append({
+                            "video_path": str(video_path),
+                            "error": str(e)
+                        })
+                        logger.error(f"Failed to process {video_path}: {e}")
+                    
+                    pbar.update(1)
+        
+        # Calculate final statistics
+        total_time = time.time() - batch_start_time
+        if self.stats.total_processing_time > 0:
+            self.stats.average_fps_processed = self.stats.total_frames_extracted / self.stats.total_processing_time
+        
+        logger.info(f"✅ Batch extraction completed in {total_time:.1f}s")
+        logger.info(f"📊 Success: {len(results['success'])}, Errors: {len(results['errors'])}")
+        logger.info(f"🖼️  Total frames: {results['total_frames']}")
+        
+        return results
+
+    def extract_frames_with_context(self, video_path: Union[str, Path], video_dir: Path, step: int = 1,
+                                   max_frames: Optional[int] = None, start_time: float = 0,
+                                   end_time: Optional[float] = None) -> int:
+        """
+        Extract frames from a single video with directory context for proper output placement
+        
+        Args:
+            video_path: Path to video file
+            video_dir: Directory context for output placement
+            step: Extract every Nth frame (default=1 for every frame)
+            max_frames: Maximum number of frames to extract
+            start_time: Start time in seconds
+            end_time: End time in seconds (None for end of video)
+            
+        Returns:
+            Number of frames extracted
+        """
+        video_path = Path(video_path)
+        output_path = self._get_output_path(video_path, video_dir)
+        return self.extract_frames(video_path, step, max_frames, start_time, end_time, output_path, video_dir)
+
     def extract_from_directory(self, video_dir: Union[str, Path], step: int = 1,
                               max_frames: Optional[int] = None, start_time: float = 0,
                               end_time: Optional[float] = None, recursive: bool = True) -> Dict:
@@ -452,6 +574,9 @@ class FrameExtractor:
         video_dir = Path(video_dir)
         logger.info(f"Starting directory extraction: {video_dir}")
         
+        # Set processing directory context
+        self.processing_directory = video_dir
+        
         # Find all video files
         video_files = self.find_video_files(video_dir, recursive)
         if not video_files:
@@ -465,7 +590,12 @@ class FrameExtractor:
                 self._get_output_path(video_path, video_dir)
         
         # Process all videos
-        return self.extract_from_videos(video_files, step, max_frames, start_time, end_time)
+        result = self.extract_from_videos_with_context(video_files, video_dir, step, max_frames, start_time, end_time)
+        
+        # Clear processing directory context
+        self.processing_directory = None
+        
+        return result
 
     def resume_extraction(self, video_dir: Union[str, Path]) -> Dict:
         """
@@ -489,14 +619,14 @@ class FrameExtractor:
         incomplete_videos = []
         
         for video_path in video_files:
-            state = self._load_extraction_state(video_path)
+            state = self._load_extraction_state(video_path, video_dir)
             if not state or state.status in ['in_progress', 'failed']:
                 incomplete_videos.append(video_path)
         
         logger.info(f"Found {len(incomplete_videos)} videos to resume/retry")
         
         if incomplete_videos:
-            return self.extract_from_videos(incomplete_videos)
+            return self.extract_from_videos_with_context(incomplete_videos, video_dir)
         else:
             logger.info("No videos need resuming")
             return {"success": [], "errors": [], "total_frames": 0}
@@ -521,6 +651,8 @@ class FrameExtractor:
             return
         
         cleaned_count = 0
+        
+        # Clean up default state directory
         for state_file in self.state_dir.glob("*.json"):
             try:
                 with open(state_file, 'r') as f:
@@ -541,6 +673,34 @@ class FrameExtractor:
                     
             except Exception as e:
                 logger.warning(f"Error cleaning {state_file}: {e}")
+        
+        # Also clean up any video_frames_extracted directories with state files
+        cwd = Path.cwd()
+        for video_frames_dir in cwd.glob("**/video_frames_extracted"):
+            state_dir = video_frames_dir / ".extraction_state"
+            if state_dir.exists():
+                for state_file in state_dir.glob("*.json"):
+                    try:
+                        with open(state_file, 'r') as f:
+                            state_data = json.load(f)
+                        
+                        if state_data.get('status') == 'failed':
+                            video_path = Path(state_data['video_path'])
+                            # Try to determine the relative directory
+                            video_dir = video_path.parent
+                            output_path = self._get_output_path(video_path, video_dir)
+                            
+                            if output_path.exists():
+                                import shutil
+                                shutil.rmtree(output_path)
+                                cleaned_count += 1
+                                logger.info(f"Cleaned incomplete frames: {output_path}")
+                            
+                            # Remove state file
+                            state_file.unlink()
+                            
+                    except Exception as e:
+                        logger.warning(f"Error cleaning {state_file}: {e}")
         
         logger.info(f"Cleaned {cleaned_count} incomplete extractions")
 
