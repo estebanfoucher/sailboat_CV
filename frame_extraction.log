@@ -1,0 +1,9 @@
+2025-06-30 11:04:53,001 - INFO - Frame extractor initialized: frames
+2025-06-30 11:04:53,002 - INFO - Workers: 4, Subdirs: True, Resume: True
+2025-06-30 11:04:53,002 - INFO - Starting directory extraction: seb_perso_24_06_2025/videos
+2025-06-30 11:04:53,003 - INFO - Found 12 video files in seb_perso_24_06_2025/videos
+2025-06-30 11:04:53,004 - INFO - Starting batch extraction: 12 videos, 4 workers
+2025-06-30 11:04:53,451 - INFO - Extracting 4437 frames from sebperso24062025gh01014949b405.mov (step=1)
+2025-06-30 11:04:53,470 - INFO - Extracting 2860 frames from sebperso24062025gx010167364598.mov (step=1)
+2025-06-30 11:04:53,484 - INFO - Extracting 7654 frames from sebperso2406202531032024rushslocmalo69ce49.mov (step=1)
+2025-06-30 11:04:53,517 - INFO - Extracting 1959 frames from sebperso24062025gx010163cba39a.mov (step=1)
