@@ -9,3 +9,4 @@ runs/detect/val*
 .venv
 output.mp4
 seb_perso_24_06_2025*
+*.pyc
