@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Simple Image Resolution Counter
+Image Folder Report
 
 Counts images by resolution (height x width) in a folder.
 
 Usage:
-    python image_resolution_report.py /path/to/images/folder
+    python image_folder_report.py /path/to/images/folder
 """
 
 import argparse

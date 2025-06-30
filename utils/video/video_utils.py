@@ -56,6 +56,25 @@ def get_video_fps(filepath: str) -> float:
     return fps
 
 
+def get_video_duration(filepath: str) -> float:
+    """Return the duration of the video in seconds using ffprobe."""
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"File not found: {filepath}")
+    cmd = [
+        'ffprobe',
+        '-v', 'error',
+        '-show_entries', 'format=duration',
+        '-of', 'csv=p=0',
+        filepath
+    ]
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"ffprobe error: {result.stderr}")
+    
+    duration = float(result.stdout.strip())
+    return duration
+
+
 def downsample_fps(input_path, output_path=None, fps=25):
     """Downsample a video's FPS using ffmpeg."""
     import tempfile

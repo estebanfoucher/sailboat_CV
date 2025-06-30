@@ -120,26 +120,46 @@ def main():
 
     if os.path.isdir(args.input):
         # Process all videos in directory
-        processed_count = 0
-        total_count = 0
+        print(f"\n=== Scanning directory for video files ===")
         
+        # First, collect all video files to get accurate count
+        video_files = []
         for fname in os.listdir(args.input):
             fpath = os.path.join(args.input, fname)
-            if not os.path.isfile(fpath):
-                continue
-            if not is_video_file(fpath):
-                continue
-            
-            total_count += 1
-            print(f"\nProcessing {fname}...")
+            if os.path.isfile(fpath) and is_video_file(fpath):
+                video_files.append((fname, fpath))
+        
+        total_count = len(video_files)
+        processed_count = 0
+        
+        if total_count == 0:
+            print("No video files found in directory.")
+            return
+        
+        print(f"Found {total_count} video file(s) to process")
+        print(f"=== Starting batch processing ===\n")
+        
+        for idx, (fname, fpath) in enumerate(video_files, 1):
+            percentage = (idx / total_count) * 100
+            print(f"[{idx}/{total_count}] ({percentage:.1f}%) Processing: {fname}")
             
             if process_single_file(fpath, args.fps, resolution):
                 processed_count += 1
+                print(f"  ✅ Success - {fname} processed")
+            else:
+                print(f"  ❌ Failed - {fname} processing failed")
         
         print(f"\n=== Processing Summary ===")
         print(f"Total videos found: {total_count}")
         print(f"Successfully processed: {processed_count}")
         print(f"Failed: {total_count - processed_count}")
+        
+        if processed_count == total_count:
+            print("🎉 All videos processed successfully!")
+        elif processed_count > 0:
+            print(f"⚠️  {total_count - processed_count} video(s) failed to process")
+        else:
+            print("❌ No videos were processed successfully")
         
     else:
         # Process single file

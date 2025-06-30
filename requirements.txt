@@ -8,3 +8,4 @@ supervision
 label-studio-sdk
 numpy
 filetype
+loguru
