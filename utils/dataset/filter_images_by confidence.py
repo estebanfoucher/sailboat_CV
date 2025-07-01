@@ -9,16 +9,14 @@ import sys
 
 # Paths
 MODEL_PATH = f'runs/detect/train-03-nano-augment/weights/best.engine'
-INPUT_ROOT = Path('youtube_downloads/videos/video_frames_extracted')
-OUTPUT_ROOT = Path('youtube_downloads/videos/video_frames_extracted_filtered')
 
 # Supported image extensions
 IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
 
-def count_images_per_subfolder():
+def count_images_per_subfolder(input_root):
     subfolder_counts = {}
-    for subdir, _, files in os.walk(INPUT_ROOT):
-        rel_dir = os.path.relpath(subdir, INPUT_ROOT)
+    for subdir, _, files in os.walk(input_root):
+        rel_dir = os.path.relpath(subdir, input_root)
         if rel_dir == ".":
             rel_dir = "(root)"
         count = sum(1 for fname in files if Path(fname).suffix.lower() in IMAGE_EXTS)
@@ -40,16 +38,16 @@ def suppress_stdout_stderr():
             sys.stdout = old_stdout
             sys.stderr = old_stderr
 
-def filter_and_copy_images(confidence: float = 0.5):
+def filter_and_copy_images(input_root: Path, output_root: Path, confidence: float = 0.5):
     # Load YOLO model with verbose=False
     with suppress_stdout_stderr():
         model = YOLO(MODEL_PATH, verbose=False)
-    if not INPUT_ROOT.exists():
-        raise FileNotFoundError(f'Input directory not found: {INPUT_ROOT}')
-    OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
+    if not input_root.exists():
+        raise FileNotFoundError(f'Input directory not found: {input_root}')
+    output_root.mkdir(parents=True, exist_ok=True)
 
     # Count images per subfolder and log
-    subfolder_counts = count_images_per_subfolder()
+    subfolder_counts = count_images_per_subfolder(input_root)
     print("Image count per subfolder:")
     for folder, count in sorted(subfolder_counts.items(), key=lambda x: x[0]):
         print(f"  {folder}: {count}")
@@ -59,8 +57,8 @@ def filter_and_copy_images(confidence: float = 0.5):
     subfolders = [k for k in subfolder_counts.keys()]
     with tqdm(subfolders, desc="Folders", unit="folder") as folder_bar:
         for rel_dir in folder_bar:
-            in_dir = INPUT_ROOT / rel_dir if rel_dir != "(root)" else INPUT_ROOT
-            out_dir = OUTPUT_ROOT / rel_dir if rel_dir != "(root)" else OUTPUT_ROOT
+            in_dir = input_root / rel_dir if rel_dir != "(root)" else input_root
+            out_dir = output_root / rel_dir if rel_dir != "(root)" else output_root
             out_dir.mkdir(parents=True, exist_ok=True)
             # List images in this folder
             images = [fname for fname in os.listdir(in_dir) if Path(fname).suffix.lower() in IMAGE_EXTS]
@@ -80,10 +78,15 @@ def filter_and_copy_images(confidence: float = 0.5):
                         shutil.copy2(in_path, out_dir / fname)
                         kept += 1
                     total += 1
-    print(f"Done. {kept}/{total} images kept (with detections >= {confidence}). Output: {OUTPUT_ROOT}")
+    print(f"Done. {kept}/{total} images kept (with detections >= {confidence}). Output: {output_root}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Filter images by YOLO detections.")
+    parser.add_argument('input_root', type=str, help='Path to input directory containing images')
     parser.add_argument('--confidence', type=float, default=0.5, help='Minimum confidence score for detections (default: 0.5)')
     args = parser.parse_args()
-    filter_and_copy_images(confidence=args.confidence) 
+    
+    input_root = Path(args.input_root)
+    output_root = input_root.parent / (input_root.name + "_filtered")
+    
+    filter_and_copy_images(input_root, output_root, confidence=args.confidence)

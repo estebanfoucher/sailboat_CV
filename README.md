@@ -31,10 +31,14 @@ then analyze it:
 
 `python utils/dataset/filter_photos_with_model.py path_to_photo_folder --confidence 0.1`
 
+### Unnest folder
+
+`python utils/dataset/unnest.py --input tell_tales_seb_01_07_2025 --output flattened_images`
+
 ### Harmonize source distribution
 
 analyze source repartition :
-`python utils/dataset/image_source_report.py path_to_image_folder`
+`python utils/dataset/image_source_report.py flattened_images`
 
 put a limit to image per source to avoid overrepresentation :
 `python utils/dataset/harmonize_source_distribution.py flattened_images/ --output-dir final_images --max-per-source 30`
