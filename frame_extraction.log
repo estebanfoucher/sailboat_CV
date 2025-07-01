@@ -128,3 +128,35 @@
 2025-06-30 11:36:08,743 - INFO - ✅ Batch extraction completed in 35.8s
 2025-06-30 11:36:08,743 - INFO - 📊 Success: 12, Errors: 0
 2025-06-30 11:36:08,743 - INFO - 🖼️  Total frames: 158
+2025-06-30 12:13:23,893 - INFO - Frame extractor initialized: frames
+2025-06-30 12:13:23,893 - INFO - Workers: 4, Subdirs: True, Resume: True
+2025-06-30 12:13:23,893 - INFO - Starting directory extraction: seb_perso_24_06_2025/videos
+2025-06-30 12:13:23,894 - INFO - Found 12 video files in seb_perso_24_06_2025/videos
+2025-06-30 12:13:24,025 - INFO - Starting batch extraction: 12 videos, 4 workers
+2025-06-30 12:13:24,355 - INFO - Extracting 766 frames from sebperso2406202531032024rushslocmalo69ce49.mov (step=10)
+2025-06-30 12:13:24,378 - INFO - Extracting 286 frames from sebperso24062025gx010167364598.mov (step=10)
+2025-06-30 12:13:24,385 - INFO - Extracting 444 frames from sebperso24062025gh01014949b405.mov (step=10)
+2025-06-30 12:13:24,451 - INFO - Extracting 196 frames from sebperso24062025gx010163cba39a.mov (step=10)
+2025-06-30 12:18:45,587 - INFO - ✅ Extracted 196 frames from sebperso24062025gx010163cba39a.mov in 321.6s
+2025-06-30 12:18:46,027 - INFO - Extracting 201 frames from sebperso24062025gx010171f54e00.mov (step=10)
+2025-06-30 12:20:46,588 - INFO - ✅ Extracted 286 frames from sebperso24062025gx010167364598.mov in 442.6s
+2025-06-30 12:20:46,983 - INFO - Extracting 45 frames from sebperso24062025gx010172ee00a7.mov (step=10)
+2025-06-30 12:21:50,717 - INFO - ✅ Extracted 45 frames from sebperso24062025gx010172ee00a7.mov in 64.1s
+2025-06-30 12:21:51,168 - INFO - Extracting 70 frames from sebperso24062025gx0101757f985c.mov (step=10)
+2025-06-30 12:23:31,974 - INFO - ✅ Extracted 70 frames from sebperso24062025gx0101757f985c.mov in 101.2s
+2025-06-30 12:23:32,593 - INFO - Extracting 19 frames from sebperso24062025img122350d2bb.mov (step=10)
+2025-06-30 12:23:43,036 - INFO - ✅ Extracted 201 frames from sebperso24062025gx010171f54e00.mov in 297.4s
+2025-06-30 12:23:43,618 - INFO - Extracting 90 frames from sebperso24062025img383514c3f1.mov (step=10)
+2025-06-30 12:24:24,483 - INFO - ✅ Extracted 19 frames from sebperso24062025img122350d2bb.mov in 52.5s
+2025-06-30 12:24:24,954 - INFO - Extracting 27 frames from sebperso24062025img46552ef24b.mov (step=10)
+2025-06-30 12:25:46,409 - INFO - ✅ Extracted 27 frames from sebperso24062025img46552ef24b.mov in 81.9s
+2025-06-30 12:25:46,801 - INFO - Extracting 23 frames from sebperso24062025img72988b3437.mov (step=10)
+2025-06-30 12:26:37,584 - INFO - ✅ Extracted 23 frames from sebperso24062025img72988b3437.mov in 51.2s
+2025-06-30 12:26:38,092 - INFO - Extracting 117 frames from sebperso24062025img9580a5fb2b.mov (step=10)
+2025-06-30 12:26:43,924 - INFO - ✅ Extracted 90 frames from sebperso24062025img383514c3f1.mov in 180.9s
+2025-06-30 12:26:54,956 - INFO - ✅ Extracted 444 frames from sebperso24062025gh01014949b405.mov in 810.9s
+2025-06-30 12:27:53,290 - INFO - ✅ Extracted 117 frames from sebperso24062025img9580a5fb2b.mov in 75.7s
+2025-06-30 12:30:37,204 - INFO - ✅ Extracted 766 frames from sebperso2406202531032024rushslocmalo69ce49.mov in 1033.2s
+2025-06-30 12:30:37,209 - INFO - ✅ Batch extraction completed in 1033.2s
+2025-06-30 12:30:37,209 - INFO - 📊 Success: 12, Errors: 0
+2025-06-30 12:30:37,209 - INFO - 🖼️  Total frames: 2284
