@@ -8,9 +8,9 @@ import contextlib
 import sys
 
 # Paths
-MODEL_PATH = f'runs/detect/train-03-nano-augment/weights/best.pt'
-INPUT_ROOT = Path('seb_perso_24_06_2025/video_frames_extracted')
-OUTPUT_ROOT = Path('seb_perso_24_06_2025/video_frames_extracted_filtered')
+MODEL_PATH = f'runs/detect/train-03-nano-augment/weights/best.engine'
+INPUT_ROOT = Path('youtube_downloads/videos/video_frames_extracted')
+OUTPUT_ROOT = Path('youtube_downloads/videos/video_frames_extracted_filtered')
 
 # Supported image extensions
 IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}

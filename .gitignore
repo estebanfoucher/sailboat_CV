@@ -1,12 +1,28 @@
-youtube_data
-label_studio_data
-./*.pt
-.env
-*youtube_cookies.txt
-youtube_data_filtered*
+# Ignore everything by default
+*
+
+# Whitelist specific folders and their contents
+!trackers/
+!trackers/**
+!utils/
+!utils/**
+!data/
+!data/**
+!runs/
+!runs/**
+!jetson/
+!jetson/**
+!notebooks/
+
+# Whitelist specific root-level files
+!CHANGELOG.md
+!README.md
+!requirements.txt
+
+# Re-ignore specific subfolders (even though runs/ is whitelisted)
 runs/detect/track*
 runs/detect/val*
+
+# Ignore virtual environment and Python cache
 .venv
-output.mp4
-seb_perso_24_06_2025*
 *.pyc
