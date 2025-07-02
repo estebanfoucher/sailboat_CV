@@ -1,80 +1,89 @@
 import json
 import os
-import sys
+import argparse
+from pathlib import Path
 
-# Define class names and corresponding indices
-class_map = {
-    "pennon_sail": 0,
-    "pennon_leech": 1,
-}
-state_map = {
-    "attached": 2,
-    "detached": 3,
-}
+def parse_args():
+    parser = argparse.ArgumentParser(description="Convert labeled JSON to YOLO format.")
+    parser.add_argument('--input', required=True, help='Path to the input JSON file')
+    parser.add_argument('--output', required=True, help='Directory to save YOLO annotations')
+    return parser.parse_args()
 
-def convert_annotation(annotation, image_width, image_height):
-    # Build a mapping from region_id to state (choices)
-    region_state = {}
-    for obj in annotation:
-        if obj.get("type") == "choices" and obj.get("from_name") in ("state", "pennon_sail_status"):
-            region_id = obj.get("region_id")
-            choices = obj["value"].get("choices", [])
-            if region_id and choices:
-                region_state[region_id] = choices[0]  # Only one state per region
+def get_status_by_id(result_list):
+    """ Map object ID to its status ('attached', 'detached', etc.) """
+    status_map = {}
+    for item in result_list:
+        if item.get('type') == 'choices':
+            object_id = item.get('id')
+            status = item['value']['choices'][0]
+            status_map[object_id] = status
+    return status_map
 
-    labels = []
-    for obj in annotation:
-        if obj.get("type") != "rectanglelabels":
-            continue
+def convert_bbox_to_yolo(x, y, w, h):
+    """ Convert absolute % bbox to YOLO format (cx, cy, w, h), normalized """
+    x_center = x + w / 2
+    y_center = y + h / 2
+    return x_center / 100, y_center / 100, w / 100, h / 100
 
-        label = obj["value"]["rectanglelabels"][0]
-        x = obj["value"]["x"] / 100
-        y = obj["value"]["y"] / 100
-        w = obj["value"]["width"] / 100
-        h = obj["value"]["height"] / 100
-
-        x_center = x + w / 2
-        y_center = y + h / 2
-
-        class_ids = [class_map[label]]
-
-        # Now check for state (from choices) using region_id
-        region_id = obj.get("region_id")
-        if label == "pennon_sail" and region_id in region_state:
-            state = region_state[region_id]
-            if state in state_map:
-                class_ids.append(state_map[state])
-
-        label_line = " ".join(str(cls_id) for cls_id in class_ids)
-        label_line += f" {x_center:.6f} {y_center:.6f} {w:.6f} {h:.6f}"
-        labels.append(label_line)
-    return labels
-
-def main(json_path, output_dir):
-    # Load exported JSON
-    with open(json_path, "r") as f:
-        data = json.load(f)
-
+def process_json(json_data, output_dir):
+    # Create output directory if not exists
     os.makedirs(output_dir, exist_ok=True)
+    
+    # Define label map: you can extend this as needed
+    label_map = {
+        "pennon_sail:attached": 0,
+        "pennon_sail:detached": 1,
+        "pennon_leech": 2
+    }
 
-    for task in data:
-        image_name = os.path.basename(task["data"]["image"])
+    for task in json_data:
+        image_path = task['data']['image']
+        image_name = Path(image_path).name
         base_name = os.path.splitext(image_name)[0]
-        output_path = os.path.join(output_dir, base_name + ".txt")
+        annotation_path = os.path.join(output_dir, base_name + '.txt')
+        
+        annotations = task['annotations'][0]['result']
+        status_map = get_status_by_id(annotations)
 
-        annotations = task["annotations"][0]["result"]
-        width = task["data"].get("width", 1)
-        height = task["data"].get("height", 1)
+        with open(annotation_path, 'w') as f:
+            for item in annotations:
+                if item.get('type') != 'rectanglelabels':
+                    continue
+                label = item['value']['rectanglelabels'][0]
+                object_id = item['id']
+                width = item['value']['width']
+                height = item['value']['height']
+                x = item['value']['x']
+                y = item['value']['y']
 
-        labels = convert_annotation(annotations, width, height)
+                orig_w = item['original_width']
+                orig_h = item['original_height']
 
-        with open(output_path, "w") as f:
-            f.write("\n".join(labels))
+                # Convert to YOLO
+                x_yolo, y_yolo, w_yolo, h_yolo = convert_bbox_to_yolo(x, y, width, height)
+
+                # Determine class ID
+                if label == "pennon_sail":
+                    status = status_map.get(object_id, "attached")
+                    class_key = f"{label}:{status}"
+                else:
+                    class_key = label
+
+                class_id = label_map.get(class_key)
+                if class_id is None:
+                    print(f"Warning: Unknown class for label '{class_key}'")
+                    continue
+
+                # Write YOLO line
+                f.write(f"{class_id} {x_yolo:.6f} {y_yolo:.6f} {w_yolo:.6f} {h_yolo:.6f}\n")
+
+def main():
+    args = parse_args()
+
+    with open(args.input, 'r') as f:
+        json_data = json.load(f)
+
+    process_json(json_data, args.output)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python json_to_yolo_multilabel.py <export.json> [output_dir]")
-        sys.exit(1)
-    json_path = sys.argv[1]
-    output_dir = sys.argv[2] if len(sys.argv) > 2 else "yolo_labels"
-    main(json_path, output_dir) 
+    main()
