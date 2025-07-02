@@ -3,6 +3,7 @@ import boto3
 import json
 import logging
 from botocore.exceptions import ClientError
+import argparse
 
 # Set up logging
 logging.basicConfig(
@@ -43,33 +44,29 @@ def download_images_from_s3(json_file_path, images_folder_path):
             bucket_name = path_parts[0]
             s3_key = '/'.join(path_parts[1:])
 
-            # Extract the video_id and frame_image
-            video_id = path_parts[-2]
+            # Use only the original filename for saving
             frame_image = path_parts[-1]
-
-            # Create the new file name
-            new_file_name = video_id + '__' + frame_image
-            target_path = os.path.join(images_folder_path, new_file_name)
+            target_path = os.path.join(images_folder_path, frame_image)
 
             # Skip if file already exists
             if os.path.exists(target_path):
                 skipped_downloads.append({
-                    'file': new_file_name,
+                    'file': frame_image,
                     'reason': 'File already exists'
                 })
-                logger.info(f"Skipped {new_file_name} - already exists")
+                logger.info(f"Skipped {frame_image} - already exists")
                 continue
 
             # Download the file
             try:
                 s3.download_file(bucket_name, s3_key, target_path)
                 successful_downloads += 1
-                logger.info(f"Downloaded ({successful_downloads}/{total_entries}): {s3_key} to {new_file_name}")
+                logger.info(f"Downloaded ({successful_downloads}/{total_entries}): {s3_key} to {frame_image}")
             except ClientError as e:
                 error_code = e.response.get('Error', {}).get('Code', 'Unknown')
                 error_message = e.response.get('Error', {}).get('Message', str(e))
                 failed_downloads.append({
-                    'file': new_file_name,
+                    'file': frame_image,
                     's3_path': s3_path,
                     'error': f"{error_code}: {error_message}"
                 })
@@ -107,7 +104,12 @@ def download_images_from_s3(json_file_path, images_folder_path):
 
     return successful_downloads, failed_downloads, skipped_downloads
 
-# Example usage
-json_file_path = './docker/label_studio/data/export/yolo/pennon-label-yolo-01/pennon-label-yolo-01.json'
-images_folder_path = './docker/label_studio/data/export/yolo/pennon-label-yolo-01/images'
-download_images_from_s3(json_file_path, images_folder_path)
+def main():
+    parser = argparse.ArgumentParser(description="Download images from S3 using a Label Studio JSON export.")
+    parser.add_argument('json_file_path', type=str, help='Path to the Label Studio JSON export file')
+    parser.add_argument('images_folder_path', type=str, help='Directory to save downloaded images')
+    args = parser.parse_args()
+    download_images_from_s3(args.json_file_path, args.images_folder_path)
+
+if __name__ == "__main__":
+    main()

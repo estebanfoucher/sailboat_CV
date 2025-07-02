@@ -1,0 +1,9 @@
+# YOLO dataset configuration
+train: data/splitted_datasets/3-classes/train/images
+val: data/splitted_datasets/3-classes/val/images
+
+# Number of classes
+nc: 3
+
+# Class names
+names: ['pennon_attached', 'pennon_detached', 'pennon_leech']

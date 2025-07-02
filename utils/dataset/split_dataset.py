@@ -4,7 +4,7 @@ import shutil
 import json
 from sklearn.model_selection import train_test_split
 from pathlib import Path
-import config
+import argparse
 
 # Dataset related configurations
 DATASET_VERSION = os.getenv('DATASET_VERSION')  # Default to 'v1' if not specified
@@ -12,9 +12,9 @@ DATASET_PATH = os.getenv('DATASET_PATH')  # Default to 'data' directory
 LABEL_STUDIO_DATA_PATH = os.getenv('LABEL_STUDIO_DATA_PATH')
 
 # Training related configurations
-TRAIN_SPLIT = float(os.getenv('TRAIN_SPLIT', '0.8'))  # Default to 80% for training
-VAL_SPLIT = float(os.getenv('VAL_SPLIT', '0.1'))    # Default to 10% for validation
-TEST_SPLIT = float(os.getenv('TEST_SPLIT', '0.1'))   # Default to 10% for testing
+TRAIN_SPLIT = 0.8  # Default to 80% for training
+VAL_SPLIT = 0.2    # Default to 10% for validation
+TEST_SPLIT = 0
 
 # Ensure splits sum to 1
 assert abs(TRAIN_SPLIT + VAL_SPLIT + TEST_SPLIT - 1.0) < 1e-6, "Split ratios must sum to 1"
@@ -39,7 +39,7 @@ def split_yolo_dataset(base_dir, output_dir=None, val_size=None, test_size=None,
     
     # Create output directory
     if output_dir is None:
-        output_path = base_path.parent / f"{base_path.name}_split"
+        output_path = Path('data/splitted_datasets') / base_path.name
     else:
         output_path = Path(output_dir)
     
@@ -236,19 +236,22 @@ def split_yolo_dataset(base_dir, output_dir=None, val_size=None, test_size=None,
     print(f"Summary saved to: {output_path / 'split_summary.json'}")
     return summary
 
-# Example usage
-if __name__ == "__main__":
-    import sys
-    if len(sys.argv) < 2:
-        print("Usage: python split_dataset.py <dataset_path> [output_dir]")
-        sys.exit(1)
-    base_dir = Path(sys.argv[1])
-    output_dir = Path(sys.argv[2]) if len(sys.argv) > 2 else None
+def main():
+    parser = argparse.ArgumentParser(description="Split a YOLO dataset into train/val/test folders.")
+    parser.add_argument('dataset_path', type=str, help='Path to the non-splitted dataset directory')
+    parser.add_argument('--output_dir', type=str, default=None, help='Output directory for the split dataset (default: data/splitted_datasets/<dataset_name>)')
+    parser.add_argument('--val_size', type=float, default=None, help='Validation split size (default: 0.2)')
+    parser.add_argument('--test_size', type=float, default=None, help='Test split size (default: 0)')
+    parser.add_argument('--random_state', type=int, default=42, help='Random seed (default: 42)')
+    args = parser.parse_args()
+
     try:
         summary = split_yolo_dataset(
-            base_dir=base_dir,
-            output_dir=output_dir,
-            random_state=42,
+            base_dir=args.dataset_path,
+            output_dir=args.output_dir,
+            val_size=args.val_size,
+            test_size=args.test_size,
+            random_state=args.random_state,
             additional_files=['classes.txt', 'notes.json']
         )
         print("\nSplit Summary:")
@@ -256,3 +259,6 @@ if __name__ == "__main__":
             print(f"  {key}: {value}")
     except Exception as e:
         print(f"Error: {e}")
+
+if __name__ == "__main__":
+    main()
