@@ -13,6 +13,8 @@
 !jetson/
 !jetson/**
 !notebooks/
+!labels/
+!labels/**
 
 # Whitelist specific root-level files
 !CHANGELOG.md

@@ -51,3 +51,11 @@ put a limit to image per source to avoid overrepresentation :
 
 `cd label-studio`
 `docker-compose up -d`
+
+### export and prepare dataset
+
+#### Remove prefixes
+
+`python utils/label_studio/remove_label_prefix.py label_folder`
+
+#### Download images from labels
