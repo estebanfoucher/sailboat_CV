@@ -10,6 +10,7 @@ from render import draw_tracks
 from track import DetectionProcessor, BaseClassMapper
 from byte_tracker import BYTETracker
 from track import ByteTrackWrapper
+from loguru import logger
 
 
 def load_config(config_path: str) -> Dict[str, Any]:
@@ -25,7 +26,16 @@ def load_config(config_path: str) -> Dict[str, Any]:
     return config
 
 
-def load_yolo_model(model_path: str):
+def resolve_all_paths(config, project_root):
+    def resolve_path(path):
+        return path if os.path.isabs(path) else os.path.abspath(os.path.join(project_root, path))
+    config['input_video'] = resolve_path(config['input_video'])
+    config['output_video'] = resolve_path(config['output_video'])
+    config['yolo_model_path'] = resolve_path(config['yolo_model_path'])
+    return config
+
+
+def init_yolo_model(yolo_model_path):
     """
     Load a YOLOv8 model from the given path.
     Args:
@@ -33,12 +43,41 @@ def load_yolo_model(model_path: str):
     Returns:
         YOLO: Loaded YOLO model.
     """
-    return YOLO(model_path)
+    return YOLO(yolo_model_path)
+
+
+def init_detection_processor(base_class_mapping):
+    base_mapper = BaseClassMapper()
+    base_mapper.class_mapping = base_class_mapping
+    return DetectionProcessor(base_mapper), base_mapper
+
+
+def init_tracker(fps, bytetrack_params, base_mapper):
+    tracker = BYTETracker(
+        frame_rate=fps,
+        track_thresh=bytetrack_params.get('track_thresh', 0.2),
+        track_buffer=bytetrack_params.get('track_buffer', 30),
+        match_thresh=bytetrack_params.get('match_thresh', 0.8)
+    )
+    return ByteTrackWrapper(tracker, base_mapper)
+
+
+def init_writer(output_video, fps, frame_size):
+    return open_video_writer(output_video, fps, frame_size)
+
+
+def init_class_info(config):
+    # Enforce coloring convention
+    return {
+        0: {"name": config['class_info'][0]['name'], "color": (0, 255, 0)},   # green
+        1: {"name": config['class_info'][1]['name'], "color": (0, 0, 255)},   # red
+        2: {"name": config['class_info'][2]['name'], "color": (255, 0, 0)},   # blue
+    }
 
 
 def run_yolo_detection(model, frame):
     """
-    Run YOLO detection on a frame and return bboxes, confidences, class_ids.
+    Run YOLO detection on a frame and return bboxes, confidences, class_ids, and class_probs.
     Args:
         model: YOLO model.
         frame (np.ndarray): Input frame (BGR).
@@ -46,6 +85,7 @@ def run_yolo_detection(model, frame):
         bboxes (np.ndarray): (N, 4) array of [x1, y1, x2, y2].
         confidences (np.ndarray): (N,) array of confidence scores.
         class_ids (np.ndarray): (N,) array of class IDs.
+        class_probs (np.ndarray): (N, num_classes) array of class probabilities.
     """
     results = model(frame)
     boxes = results[0].boxes
@@ -53,72 +93,72 @@ def run_yolo_detection(model, frame):
         bboxes = boxes.xyxy.cpu().numpy()
         confidences = boxes.conf.cpu().numpy()
         class_ids = boxes.cls.cpu().numpy()
-        return bboxes, confidences, class_ids
-    else:
-        return None, None, None
-
-
-def resolve_path(path, project_root):
-    """
-    Resolve a path relative to the project root if not already absolute.
-    """
-    return path if os.path.isabs(path) else os.path.abspath(os.path.join(project_root, path))
-
-
-def run_tracking_pipeline(
-    input_video: str,
-    output_video: str,
-    yolo_model_path: str,
-    class_info: Dict[int, Dict[str, Any]],
-    base_class_mapping: Dict[int, int],
-    bytetrack_params: Dict[str, Any] = None
-) -> None:
-    """
-    Run the full tracking and rendering pipeline.
-    Args:
-        input_video (str): Path to the input video file.
-        output_video (str): Path to the output video file.
-        yolo_model_path (str): Path to the YOLOv8 .pt model.
-        class_info (dict): Mapping of class_id to {"name", "color"}.
-        base_class_mapping (dict): Mapping of detector class_id to base class for tracking.
-        bytetrack_params (dict, optional): Parameters for ByteTrack initialization.
-    """
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
-    input_video = resolve_path(input_video, project_root)
-    output_video = resolve_path(output_video, project_root)
-    yolo_model_path = resolve_path(yolo_model_path, project_root)
-
-    fps, frame_size, frame_count = get_video_properties(input_video)
-    writer = open_video_writer(output_video, fps, frame_size)
-
-    # Load YOLO model
-    model = load_yolo_model(yolo_model_path)
-    # Prepare detection processor and class mapper
-    base_mapper = BaseClassMapper()
-    base_mapper.class_mapping = base_class_mapping
-    detection_processor = DetectionProcessor(base_mapper)
-
-    # Initialize ByteTrack
-    tracker = BYTETracker(
-        frame_rate=bytetrack_params.get('frame_rate', 25),
-        track_thresh=bytetrack_params.get('track_thresh', 0.2),
-        track_buffer=bytetrack_params.get('track_buffer', 30),
-        match_thresh=bytetrack_params.get('match_thresh', 0.8)
-    )
-    tracker_wrapper = ByteTrackWrapper(tracker, base_mapper)
-
-    for frame in tqdm(read_video_frames(input_video), total=frame_count, desc="Tracking video"):
-        bboxes, confidences, class_ids = run_yolo_detection(model, frame)
-        if bboxes is not None:
-            detections = detection_processor.process_detections(bboxes, confidences, class_ids)
-            tracks = tracker_wrapper.update(detections)
-            # Each track should have 'bbox', 'track_id', 'original_class_id', 'confidence'
-            rendered = draw_tracks(frame, tracks, class_info, show_confidence=True)
+        # Extract class probabilities from boxes.data if available
+        raw = boxes.data.cpu().numpy()
+        print(f"boxes.data shape: {raw.shape}")
+        if raw.shape[1] > 6:
+            class_probs = raw[:, 6:]
         else:
-            rendered = frame
+            class_probs = None
+        return bboxes, confidences, class_ids, class_probs
+    else:
+        return None, None, None, None
+
+
+def process_frame(frame, model, detection_processor, tracker_wrapper, class_info, blend_pairs, frame_idx, show_blend_value=False):
+    bboxes, confidences, class_ids, class_probs = run_yolo_detection(model, frame)
+    if frame_idx < 5:
+        logger.debug(f"Frame {frame_idx}: YOLO detections:")
+        logger.debug(f"  bboxes: {bboxes}")
+        logger.debug(f"  class_ids: {class_ids}")
+        if class_probs is not None:
+            for i, probs in enumerate(class_probs):
+                print(f"  Detection {i} class_probs: {probs}")
+    detections = []
+    if bboxes is not None:
+        detections = detection_processor.process_detections(bboxes, confidences, class_ids)
+        # Add blend metrics for each detection
+        if class_probs is not None:
+            for i, det in enumerate(detections):
+                det['blend_metrics'] = {}
+                for pair in blend_pairs:
+                    a, b = pair
+                    pa = class_probs[i, a] if a < class_probs.shape[1] else 0.0
+                    pb = class_probs[i, b] if b < class_probs.shape[1] else 0.0
+                    if pa == 0 and pb == 0:
+                        blend = 0.5
+                    else:
+                        blend = pb / (pa + pb)
+                    det['blend_metrics'][tuple(pair)] = blend
+    if frame_idx < 5:
+        logger.debug(f"Frame {frame_idx}: Processed detections:")
+        for det in detections:
+            logger.debug(f"  {det}")
+    tracks = tracker_wrapper.update(detections)
+    if frame_idx < 5:
+        logger.debug(f"Frame {frame_idx}: Tracker output:")
+        for tr in tracks:
+            logger.debug(f"  {tr}")
+    rendered = draw_tracks(frame, tracks, class_info, blend_pairs=blend_pairs, show_blend_value=show_blend_value)
+    return rendered
+
+
+def run_tracking_pipeline(config: Dict[str, Any]) -> None:
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+    config = resolve_all_paths(config, project_root)
+    fps, frame_size, frame_count = get_video_properties(config['input_video'])
+    writer = init_writer(config['output_video'], fps, frame_size)
+    logger.debug(f"[Pipeline] Video FPS detected: {fps}")
+    model = init_yolo_model(config['yolo_model_path'])
+    detection_processor, base_mapper = init_detection_processor(config['base_class_mapping'])
+    tracker_wrapper = init_tracker(fps, config.get('bytetrack_params', {}), base_mapper)
+    class_info = init_class_info(config)
+
+    for i, frame in enumerate(tqdm(read_video_frames(config['input_video']), total=frame_count, desc="Tracking video")):
+        rendered = process_frame(frame, model, detection_processor, tracker_wrapper, class_info, config['blend_pairs'], i)
         writer.write(rendered)
     writer.release()
-    print(f"Tracked video written to {output_video}")
+    print(f"Tracked video written to {config['output_video']}")
 
 
 def parse_args():
@@ -130,17 +170,4 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
     config = load_config(args.config)
-    # Enforce coloring convention
-    class_info = {
-        0: {"name": config['class_info'][0]['name'], "color": (0, 255, 0)},   # green
-        1: {"name": config['class_info'][1]['name'], "color": (0, 0, 255)},   # red
-        2: {"name": config['class_info'][2]['name'], "color": (255, 0, 0)},   # blue
-    }
-    run_tracking_pipeline(
-        input_video=config['input_video'],
-        output_video=config['output_video'],
-        yolo_model_path=config['yolo_model_path'],
-        class_info=class_info,
-        base_class_mapping=config['base_class_mapping'],
-        bytetrack_params=config.get('bytetrack_params', {})
-    ) 
+    run_tracking_pipeline(config) 

@@ -1,6 +1,6 @@
-input_video: data/videos/example/2Ce-CKKCtV4_35.0_40.0_fps25.mkv
-output_video: data/videos/example/2Ce-CKKCtV4_35.0_40.0_fps25_tracked.mkv
-yolo_model_path: runs/detect/train-3-classes-small-augment/weights/3-classes-small-augment.pt
+input_video: data/videos/example/2Ce-CKKCtV4_35.0_40.0_fps25_5.0_7.0.mkv
+output_video: data/videos/example/output.mkv
+yolo_model_path: runs/detect/train3/weights/best.pt
 
 class_info:
   0:
@@ -19,7 +19,9 @@ base_class_mapping:
   2: 2
 
 bytetrack_params:
-  frame_rate: 25
   track_thresh: 0.2
-  track_buffer: 30
-  match_thresh: 0.8 
+  track_buffer: 100
+  match_thresh: 0.1
+
+blend_pairs:
+  - [0, 1]  
