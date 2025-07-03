@@ -1,6 +1,8 @@
 import cv2
 from typing import Generator, Tuple, List
 import numpy as np
+import subprocess
+import os
 
 
 def open_video_capture(video_path: str) -> cv2.VideoCapture:
@@ -82,4 +84,31 @@ def write_video_frames(frames: List[np.ndarray], output_path: str, fps: int, fra
     writer = open_video_writer(output_path, fps, frame_size)
     for frame in frames:
         writer.write(frame)
-    writer.release() 
+    writer.release()
+
+
+def fix_video_with_ffmpeg(input_path, output_path=None):
+    """
+    Remux or re-encode a video file using ffmpeg to fix metadata and compatibility issues (e.g., for WhatsApp).
+    Converts to .mp4 (H.264 + AAC) by default for maximum compatibility.
+    Args:
+        input_path (str): Path to the input video file.
+        output_path (str, optional): Path for the fixed output file. If None, uses .mp4 extension and '_fixed' before extension.
+    Returns:
+        str: Path to the fixed video file.
+    Raises:
+        RuntimeError: If ffmpeg fails.
+    """
+    if output_path is None:
+        base, _ = os.path.splitext(input_path)
+        output_path = f"{base}_fixed.mp4"
+    cmd = [
+        'ffmpeg', '-y', '-i', input_path,
+        '-c:v', 'libx264', '-c:a', 'aac', '-movflags', '+faststart',
+        output_path
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, check=True)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"ffmpeg failed: {e.stderr.decode()}")
+    return output_path 

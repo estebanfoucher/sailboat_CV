@@ -5,7 +5,7 @@ import os
 from tqdm import tqdm
 import cv2
 from ultralytics import YOLO
-from video_io import get_video_properties, read_video_frames, open_video_writer
+from video_io import get_video_properties, read_video_frames, open_video_writer, fix_video_with_ffmpeg
 from render import draw_tracks
 from track import DetectionProcessor, BaseClassMapper
 from byte_tracker import BYTETracker
@@ -158,7 +158,13 @@ def run_tracking_pipeline(config: Dict[str, Any]) -> None:
         rendered = process_frame(frame, model, detection_processor, tracker_wrapper, class_info, config['blend_pairs'], i)
         writer.write(rendered)
     writer.release()
-    print(f"Tracked video written to {config['output_video']}")
+    logger.info(f"Tracked video written to {config['output_video']}")
+    # Fix video for compatibility
+    try:
+        fixed_path = fix_video_with_ffmpeg(config['output_video'])
+        logger.info(f"Fixed video for compatibility: {fixed_path}")
+    except Exception as e:
+        logger.error(f"Failed to fix video with ffmpeg: {e}")
 
 
 def parse_args():

@@ -1,5 +1,5 @@
-input_video: data/videos/example/2Ce-CKKCtV4_35.0_40.0_fps25_5.0_7.0.mkv
-output_video: data/videos/example/output.mkv
+input_video: ./IMG_4714_3.0_6.0.MOV
+output_video: ./output.mkv
 yolo_model_path: runs/detect/train3/weights/best.pt
 
 class_info:
@@ -19,9 +19,9 @@ base_class_mapping:
   2: 2
 
 bytetrack_params:
-  track_thresh: 0.2
-  track_buffer: 100
+  track_thresh: 0.5
+  track_buffer: 30
   match_thresh: 0.1
 
 blend_pairs:
-  - [0, 1]  
+  pass
