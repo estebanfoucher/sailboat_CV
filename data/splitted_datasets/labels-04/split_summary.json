@@ -1,0 +1,15 @@
+{
+  "source_dataset": "data/datasets/labels-04",
+  "output_directory": "data/splitted_datasets/labels-04",
+  "total_images": 449,
+  "train_images": 359,
+  "val_images": 90,
+  "test_images": 0,
+  "train_copied": 359,
+  "val_copied": 90,
+  "test_copied": 0,
+  "train_split": 0.8,
+  "val_split": 0.2,
+  "test_split": 0,
+  "random_state": 42
+}

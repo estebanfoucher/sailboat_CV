@@ -59,3 +59,17 @@ put a limit to image per source to avoid overrepresentation :
 `python utils/label_studio/remove_label_prefix.py label_folder`
 
 #### Download images from labels
+
+`python utils/download_images_from_s3_and_label_json.py labels/labels-04.json data/datasets/labels-04/images`
+
+#### Split dataset 
+
+`python utils/dataset/split_dataset.py data/datasets/labels-04`
+
+#### oversample train split 
+
+`python utils/augmentation/oversample.py data/splitted_datasets/labels-04/train`
+
+#### analyze label distribution in a dataset 
+
+`python utils/augmentation/print_distribution.py data/splitted_datasets/labels-04/train`

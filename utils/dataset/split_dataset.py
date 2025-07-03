@@ -205,12 +205,12 @@ def split_yolo_dataset(base_dir, output_dir=None, val_size=None, test_size=None,
             
             # Prepare paths for data.yaml
             data_yaml_content = ["# YOLO dataset configuration",
-                               f"train: {output_path}/train/images",
-                               f"val: {output_path}/val/images"]
+                               f"train: /content/sailboat_CV/{output_path}/train/images",
+                               f"val: /content/sailboat_CV/{output_path}/val/images"]
             
             # Only add test path if test split exists
             if test_size > 0:
-                data_yaml_content.append(f"test: {output_path}/test/images")
+                data_yaml_content.append(f"test: /content/sailboat_CV/{output_path}/test/images")
             
             data_yaml_content.extend([
                 "",
