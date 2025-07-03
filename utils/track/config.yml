@@ -1,0 +1,25 @@
+input_video: data/videos/example/2Ce-CKKCtV4_35.0_40.0_fps25.mkv
+output_video: data/videos/example/2Ce-CKKCtV4_35.0_40.0_fps25_tracked.mkv
+yolo_model_path: runs/detect/train-3-classes-small-augment/weights/3-classes-small-augment.pt
+
+class_info:
+  0:
+    name: pennon_attached
+    color: [255, 0, 0]
+  1:
+    name: pennon_detached
+    color: [0, 255, 0]
+  2:
+    name: pennon_leech
+    color: [0, 0, 255]
+
+base_class_mapping:
+  0: 0
+  1: 0
+  2: 2
+
+bytetrack_params:
+  frame_rate: 25
+  track_thresh: 0.2
+  track_buffer: 30
+  match_thresh: 0.8 

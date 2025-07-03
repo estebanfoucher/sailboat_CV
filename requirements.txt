@@ -9,3 +9,5 @@ label-studio-sdk
 numpy
 filetype
 loguru
+pyyaml
+scipy==1.9.3
