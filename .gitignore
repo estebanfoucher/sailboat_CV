@@ -1,6 +1,9 @@
 # Ignore everything by default
 *
 
+# Whitelist batch script at root
+!batch_infer_and_track.py
+
 # Whitelist specific folders and their contents
 !trackers/
 !trackers/**
