@@ -10,9 +10,6 @@ def process_name(name):
 
 
 def rename_in_place(input_dir):
-    base_name = os.path.basename(os.path.normpath(input_dir))
-    main_prefix = process_name(base_name)
-
     renamed_count = 0
     for sub in ['images', 'videos']:
         subfolder = os.path.join(input_dir, sub)
@@ -24,7 +21,7 @@ def rename_in_place(input_dir):
                 continue
             name, ext = os.path.splitext(fname)
             short_uuid = str(uuid.uuid4())[:6]
-            new_name = f"{main_prefix}{process_name(name)}{short_uuid}{ext.lower()}"
+            new_name = f"{process_name(name)}{short_uuid}{ext.lower()}"
             new_path = os.path.join(subfolder, new_name)
             os.rename(fpath, new_path)
             print(f"Renamed: {fpath} -> {new_path}")

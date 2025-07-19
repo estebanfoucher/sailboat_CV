@@ -142,7 +142,7 @@ class YouTubeDownloader:
             return {"fps": 0, "resolution": "unknown"}
 
     def download_video(self, url: str, quality: str = "1080p", 
-                      cookies: Optional[str] = None, force_redownload: bool = False) -> Optional[Dict]:
+                      cookies: Optional[str] = None, force_redownload: bool = False, max_duration: int = 600) -> Optional[Dict]:
         """
         Download a single video from YouTube
         
@@ -185,6 +185,12 @@ class YouTubeDownloader:
                 logger.info(f"Extracting metadata: {url}")
                 info = ydl.extract_info(url, download=False)
                 video_id = info['id']
+                duration = info.get('duration', 0)
+                if duration > max_duration:
+                    logger.info(f"Skipping {video_id}: duration {duration}s exceeds max_duration {max_duration}s")
+                    self.stats.skipped_downloads += 1
+                    self.stats.total_urls_processed += 1
+                    return None
                 
                 # Check if already downloaded
                 if not force_redownload and self._is_video_downloaded(video_id):
@@ -253,7 +259,7 @@ class YouTubeDownloader:
             self.stats.total_urls_processed += 1
 
     def download_urls(self, urls: List[str], quality: str = "720p", 
-                     cookies: Optional[str] = None, force_redownload: bool = False) -> Dict:
+                     cookies: Optional[str] = None, force_redownload: bool = False, max_duration: int = 600) -> Dict:
         """
         Download multiple videos from YouTube URLs with parallel processing
         
@@ -279,7 +285,7 @@ class YouTubeDownloader:
             # Submit download tasks
             future_to_url = {
                 executor.submit(
-                    self.download_video, url, quality, cookies, force_redownload
+                    self.download_video, url, quality, cookies, force_redownload, max_duration
                 ): url for url in urls
             }
             
@@ -343,7 +349,7 @@ class YouTubeDownloader:
         return results
 
     def download_from_file(self, file_path: Union[str, Path], quality: str = "720p",
-                          cookies: Optional[str] = None, force_redownload: bool = False) -> Dict:
+                          cookies: Optional[str] = None, force_redownload: bool = False, max_duration: int = 600) -> Dict:
         """
         Download videos from URLs listed in a text file
         
@@ -369,10 +375,11 @@ class YouTubeDownloader:
                 for line_num, line in enumerate(f, 1):
                     line = line.strip()
                     if line and not line.startswith('#'):  # Skip empty lines and comments
-                        if 'youtube.com' in line or 'youtu.be' in line:
-                            urls.append(line)
+                        url = line.split(';')[0].strip()
+                        if 'youtube.com' in url or 'youtu.be' in url:
+                            urls.append(url)
                         else:
-                            logger.warning(f"Line {line_num}: Not a YouTube URL: {line}")
+                            logger.warning(f"Line {line_num}: Not a YouTube URL: {url}")
         except Exception as e:
             logger.error(f"Error reading URL file {file_path}: {e}")
             raise
@@ -382,7 +389,7 @@ class YouTubeDownloader:
             return {"success": [], "errors": [], "total_size_mb": 0}
         
         logger.info(f"Found {len(urls)} valid YouTube URLs")
-        return self.download_urls(urls, quality, cookies, force_redownload)
+        return self.download_urls(urls, quality, cookies, force_redownload, max_duration)
 
     def get_stats(self) -> Dict:
         """Get comprehensive download statistics"""
@@ -466,19 +473,19 @@ def main():
     parser = argparse.ArgumentParser(description="YouTube Video Downloader")
     
     # Input options
-    parser.add_argument("--urls", "-u", nargs="+", help="YouTube URLs to download")
     parser.add_argument("--file", "-f", help="File containing YouTube URLs (one per line)")
     
     # Download options
-    parser.add_argument("--quality", "-q", default="720p", 
+    parser.add_argument("--quality", "-q", default="1080p", 
                        choices=["360p", "480p", "720p", "1080p", "2k", "4k"],
                        help="Video quality preference")
     parser.add_argument("--cookies", help="Path to cookies.txt file for authentication")
     parser.add_argument("--force", action="store_true", 
                        help="Force redownload existing videos")
+    parser.add_argument("--max_duration", type=int, default=600, help="Maximum allowed video duration in seconds (default: 600)")
     
     # Output options
-    parser.add_argument("--output", "-o", default="./youtube_downloads",
+    parser.add_argument("--output", "-o", default="./downloaded_data",
                        help="Output directory for videos")
     parser.add_argument("--workers", "-w", type=int, default=2,
                        help="Number of parallel download workers (max 2 recommended)")
@@ -527,24 +534,17 @@ def main():
         return
     
     # Handle download operations
-    if args.urls:
-        # Download from command line URLs
-        results = downloader.download_urls(
-            urls=args.urls,
-            quality=args.quality,
-            cookies=args.cookies,
-            force_redownload=args.force
-        )
-    elif args.file:
+    if args.file:
         # Download from file
         results = downloader.download_from_file(
             file_path=args.file,
             quality=args.quality,
             cookies=args.cookies,
-            force_redownload=args.force
+            force_redownload=args.force,
+            max_duration=args.max_duration
         )
     else:
-        logger.error("No URLs specified. Use --urls or --file")
+        logger.error("No URL file specified. Use --file")
         return
     
     # Display results

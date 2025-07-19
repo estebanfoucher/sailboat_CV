@@ -28,8 +28,8 @@ utils_dir = os.path.dirname(script_dir)
 sys.path.insert(0, utils_dir)
 
 # Import the processing functions
-from dataset.organize_raw_data import organize_raw_data
-from dataset.rename_raw_data import rename_in_place
+from raw_dataset.organize_raw_data import organize_raw_data
+from raw_dataset.rename_raw_data import rename_in_place
 
 
 class DatasetProcessor:
@@ -155,7 +155,7 @@ class DatasetProcessor:
         
         try:
             # Build downsample command
-            downsample_script = os.path.join(utils_dir, 'video', 'downsample.py')
+            downsample_script = os.path.abspath(os.path.join(utils_dir, '..', 'video', 'downsample.py'))
             cmd = [sys.executable, downsample_script, videos_dir]
             
             if self.fps:
@@ -288,8 +288,8 @@ Examples:
     )
     
     parser.add_argument('input_dir', help='Path to the dataset directory to process')
-    parser.add_argument('--skip-downsample', action='store_true', 
-                       help='Skip the video downsampling step')
+    parser.add_argument('--downsample', action='store_true',
+                       help='Enable the video downsampling step (default: off)')
     parser.add_argument('--fps', type=int, 
                        help='Target FPS for video downsampling (e.g., 25)')
     parser.add_argument('--resolution', type=str, 
@@ -320,15 +320,15 @@ Examples:
             return 1
     
     # Validate FPS and resolution requirements for downsample
-    if not args.skip_downsample and not args.fps and not args.resolution:
+    if args.downsample and not args.fps and not args.resolution:
         print("WARNING: No FPS or resolution specified for downsampling.")
         print("Videos will be processed with default settings from downsample script.")
-        print("Use --skip-downsample to skip video processing entirely.")
+        print("Omit --downsample to skip video processing entirely.")
     
     # Create processor and run
     processor = DatasetProcessor(
         input_dir=args.input_dir,
-        skip_downsample=args.skip_downsample,
+        skip_downsample=not args.downsample,
         fps=args.fps,
         resolution=resolution,
         force_backup=args.force_backup,

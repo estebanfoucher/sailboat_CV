@@ -6,7 +6,7 @@
 
 youtube:
 
-`python utils/youtube/download_videos.py --quality 1080p --file utils/youtube/urls.txt`
+`python utils/youtube/download_videos.py --file utils/youtube/urls.txt`
 
 local:
 put all local files in your well named folder.
@@ -15,9 +15,17 @@ put all local files in your well named folder.
 (optional)
 `python utils/video/trim_videos_to_duration.py path_to_video_folder --max-duration 120 --output-dir trimmed_videos`
 
+## Analyze videos 
+
+`python utils/dataset/video_folder_report.py youtube_downloads/videos`
+
+## extract frames 
+
+`python utils/video/extract_frames.py --directory downloaded_data/videos --step 15`
+
 ## Process dataset
 reorganize dataset as such
-`python utils/dataset/process_raw_dataset.py path_to_dataset --skip_downsample True`
+`python utils/dataset/raw_dataset/process_raw_dataset.py path_to_dataset`
 
 ## Analyze raw dataset 
 then analyze it:
