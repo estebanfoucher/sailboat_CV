@@ -3,6 +3,7 @@ import subprocess
 import cv2
 from pathlib import Path
 from typing import Tuple, List, Dict, Union, Optional
+from loguru import logger
 
 VIDEO_EXTENSIONS = {'.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.wmv', '.mpeg', '.mpg'}
 
@@ -27,7 +28,11 @@ def get_video_resolution(filepath: str) -> Tuple[int, int]:
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if result.returncode != 0:
         raise RuntimeError(f"ffprobe error: {result.stderr}")
-    width, height = map(int, result.stdout.strip().split('x'))
+    # Only consider the first two non-empty parts as width and height, ignore the rest
+    parts = [p for p in result.stdout.strip().split('x') if p.strip()]
+    if len(parts) < 2:
+        raise ValueError(f"Could not parse resolution from ffprobe output: '{result.stdout.strip()}'")
+    width, height = map(int, parts[:2])
     return width, height
 
 
@@ -46,15 +51,17 @@ def get_video_fps(filepath: str) -> float:
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if result.returncode != 0:
         raise RuntimeError(f"ffprobe error: {result.stderr}")
-    
-    # Parse frame rate (can be in format like "30/1" or "29.97")
     fps_str = result.stdout.strip()
+    # If output is like '30000/1001x', split and use the first non-empty part
+    fps_part = [p for p in fps_str.split('x') if p.strip()]
+    if not fps_part:
+        raise ValueError(f"Could not parse FPS from ffprobe output: '{fps_str}'")
+    fps_str = fps_part[0]
     if '/' in fps_str:
         numerator, denominator = map(float, fps_str.split('/'))
         fps = numerator / denominator
     else:
         fps = float(fps_str)
-    
     return fps
 
 
