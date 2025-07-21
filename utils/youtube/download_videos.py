@@ -17,6 +17,7 @@ import yt_dlp
 from tqdm import tqdm
 import argparse
 import cv2
+from utils.youtube.youtube_utils import get_video_id_from_url
 
 # Configure logging
 logging.basicConfig(
@@ -86,16 +87,6 @@ class YouTubeDownloader:
         
         logger.info(f"YouTube downloader initialized: {self.output_dir}")
         logger.info(f"Max workers: {self.max_workers}")
-
-    def _get_video_id_from_url(self, url: str) -> Optional[str]:
-        """Extract video ID from YouTube URL"""
-        try:
-            with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
-                info = ydl.extract_info(url, download=False)
-                return info.get('id')
-        except Exception as e:
-            logger.error(f"Could not extract video ID from {url}: {e}")
-            return None
 
     def _is_video_downloaded(self, video_id: str) -> bool:
         """Check if video is already downloaded"""
