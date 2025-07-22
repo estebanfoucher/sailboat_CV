@@ -9,8 +9,10 @@ if __name__ == "__main__":
     if not os.path.isdir(labels_folder):
         print(f"Error: {labels_folder} is not a valid directory.")
         sys.exit(1)
+    list_no_frame =[]
     for filename in os.listdir(labels_folder):
         if filename.endswith('.txt'):
+            list_no_frame =[]
             idx = filename.find('frame')
             if idx != -1:
                 new_filename = filename[idx:]
@@ -22,4 +24,9 @@ if __name__ == "__main__":
                     else:
                         os.rename(old_path, new_path)
                         print(f"Renamed {filename} -> {new_filename}")
-    print(f"Prefixes removed from all .txt filenames in {labels_folder}") 
+            if 'frame' not in filename:
+                list_no_frame.append(filename)
+                
+    print(f"Prefixes removed from all .txt filenames in {labels_folder}")
+    print(f"list of images without prefix frame :")
+    print(list_no_frame)

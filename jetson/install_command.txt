@@ -1,3 +1,0 @@
-for tensorrt
-
-ln -s /usr/lib/python3.10/dist-packages/tensorrt ~/Workspace/sailboat_CV/.venv/lib/python3.10/site-packages/tensorrt

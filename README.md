@@ -68,17 +68,17 @@ put a limit to image per source to avoid overrepresentation :
 
 ## Download images from labels
 
-`python utils/download_images_from_s3_and_label_json.py labels/labels-04.json data/datasets/labels-04/images`
+`python utils/download_images_from_s3_and_label_json.py labels/labels-05.json data/datasets/labels-05/images`
 
 ## Split dataset 
 
-`python utils/dataset/split_dataset.py data/datasets/labels-04`
+`python utils/dataset/split_dataset.py data/datasets/labels-05`
 
 ## Oversample train split 
 
 random picking images in source dataset and adding it if it makes you closer to the target class distribution (up to a number of iterations)
 
-`python utils/augmentation/oversample.py data/splitted_datasets/labels-04/train`
+`python utils/augmentation/oversample.py data/splitted_datasets/labels-05/train`
 
 ## Analyze label distribution in a dataset 
 

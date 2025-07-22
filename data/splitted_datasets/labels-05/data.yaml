@@ -1,0 +1,9 @@
+# YOLO dataset configuration
+train: /content/sailboat_CV/data/splitted_datasets/labels-05/train_oversampled/images
+val: /content/sailboat_CV/data/splitted_datasets/labels-05/val/images
+
+# Number of classes
+nc: 3
+
+# Class names
+names: ['pennon_attached', 'pennon_detached', 'pennon_leech']

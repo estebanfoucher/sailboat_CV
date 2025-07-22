@@ -11,3 +11,4 @@ filetype
 loguru
 pyyaml
 scipy==1.9.3
+scikit-learn
