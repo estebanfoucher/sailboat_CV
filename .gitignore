@@ -19,6 +19,7 @@
 !notebooks/**
 !labels/
 !labels/**
+!config.yml
 
 # Whitelist specific root-level files
 !CHANGELOG.md

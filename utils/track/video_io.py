@@ -99,18 +99,3 @@ def open_video_writer(output_path: str, fps: int, frame_size: Tuple[int, int]):
     """
     return FFmpegVideoWriter(output_path, fps, frame_size)
 
-
-def write_video_frames(frames: List[np.ndarray], output_path: str, fps: int, frame_size: Tuple[int, int]) -> None:
-    """
-    Write a list of frames to a video file.
-    Args:
-        frames (List[np.ndarray]): List of frames to write (BGR format).
-        output_path (str): Path to the output video file.
-        fps (int): Frames per second for the output video.
-        frame_size (Tuple[int, int]): (width, height) of the video frames.
-    """
-    writer = open_video_writer(output_path, fps, frame_size)
-    for frame in frames:
-        writer.write(frame)
-    writer.release()
-

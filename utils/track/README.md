@@ -1,23 +1,25 @@
 # Tracking Utilities (`utils/track`)
 
-This module provides utilities for running YOLOv8 + ByteTrack tracking on videos, with customizable class mapping and colored rendering.
+This module provides utilities for running YOLOv8 + ByteTrack tracking on videos, with customizable class mapping and colored rendering. Features optimized video output with H.264 encoding for maximum compatibility.
 
 ## Modules
 - `track.py`: Tracking logic, class mapping, detection processing.
-- `video_io.py`: Video reading/writing utilities.
+- `video_io.py`: Video reading/writing utilities with FFmpeg integration.
 - `render.py`: Drawing functions for tracks and overlays.
-- `pipeline.py`: High-level pipeline to run detection, tracking, and rendering.
 
 ## Installation
 Install dependencies:
 ```bash
 pip install opencv-python ultralytics bytetrack pyyaml
+# FFmpeg required for optimized video output
+sudo apt install ffmpeg  # Ubuntu/Debian
+brew install ffmpeg      # macOS
 ```
 
 ## Usage
 Prepare a YAML config file (see example below), then run:
 ```bash
-python pipeline.py --config path/to/config.yml
+python track.py --config path/to/config.yml
 ```
 
 ## Example `config.yml`
@@ -51,5 +53,7 @@ bytetrack_params:
 - Colors are in BGR format for OpenCV.
 
 ## Notes
-- Rendering uses the original detector class for color and label.
-- Extend or modify the pipeline as needed for your use case. 
+- Videos are output with H.264 encoding and fast-start flags for optimal compatibility
+- Uses FFmpegVideoWriter for direct frame-to-video conversion without post-processing
+- Rendering uses the original detector class for color and label
+- Extend or modify the pipeline as needed for your use case

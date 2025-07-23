@@ -109,16 +109,3 @@ def draw_tracks(
     return frame
 
 
-def draw_legend(
-    frame: np.ndarray,
-    class_info: Dict[int, Dict[str, Any]]
-) -> np.ndarray:
-    """
-    Draw a legend for class colors on the frame.
-    Args:
-        frame (np.ndarray): The image to draw on (BGR format).
-        class_info (Dict[int, Dict]): Mapping from class_id to {'name': str, 'color': (B, G, R)}
-    Returns:
-        np.ndarray: The frame with the legend overlay.
-    """
-    pass 

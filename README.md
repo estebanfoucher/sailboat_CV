@@ -94,7 +94,9 @@ cp paste model in model folder in yolo_server instance and relaunch it
 
 # Track test
 
-need GPU
+run test on custom video. configure your model and video input / output in config.yml
+`python utils/track/track.py --config config.yml`
 
-change video source in file : `python utils/model/track_ultralytics.py` 
+or batch infer on a folder containing multiple videos and images (not maintained) with 
+
 
