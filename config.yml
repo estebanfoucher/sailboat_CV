@@ -1,18 +1,19 @@
-input_video: to_track/IMG_9496_0.0_3.0.MOV
-output_video: output/output.mp4
-model_path: run_new/runs/train/rtdetr_exp/weights/best.pt
+input_video: data/videos/example/2Ce-CKKCtV4_35.0_40.0.mp4
+output_video: output/2Ce-CKKCtV4_35.0_40.0.mp4
+model_path: runs/detect/rtdetr_00/weights/best.pt
 archi: rt-detr
 
+# BGR
 class_info:
   0:
     name: pennon_attached
-    color: [255, 0, 0]
+    color: [0, 255, 0]
   1:
     name: pennon_detached
-    color: [0, 255, 0]
+    color: [0, 0, 255]
   2:
     name: pennon_leech
-    color: [0, 0, 255]
+    color: [255, 0, 0]
 
 base_class_mapping:
   0: 0
@@ -21,8 +22,5 @@ base_class_mapping:
 
 bytetrack_params:
   track_thresh: 0.5
-  track_buffer: 30
+  track_buffer: 50
   match_thresh: 0.1
-
-blend_pairs:
-  pass

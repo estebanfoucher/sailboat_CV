@@ -156,16 +156,21 @@ class YouTubeDownloader:
         start_time = time.time()
         
         try:
-            # Map quality to height
-            quality_map = {
-                "360p": 360, "480p": 480, "720p": 720, "1080p": 1080,
-                "2k": 1440, "4k": 2160
-            }
-            height = quality_map.get(quality, 1080)
+            # Configure yt-dlp options based on quality
+            if quality == "best":
+                # For best quality, use the highest quality available
+                format_selector = 'bestvideo+bestaudio/best'
+            else:
+                # Map quality to height for standard selection
+                quality_map = {
+                    "360p": 360, "480p": 480, "720p": 720, "1080p": 1080,
+                    "2k": 1440, "4k": 2160
+                }
+                height = quality_map.get(quality, 1080)
+                format_selector = f'bestvideo[height<={height}]+bestaudio/best[height<={height}]'
             
-            # Configure yt-dlp options
             ydl_opts = {
-                'format': f'bestvideo[height<={height}]+bestaudio/best[height<={height}]',
+                'format': format_selector,
                 'outtmpl': str(self.videos_dir / '%(id)s.%(ext)s'),
                 'writeinfojson': False,
                 'writethumbnail': True,
@@ -473,9 +478,9 @@ def main():
     parser.add_argument("--file", "-f", help="File containing YouTube URLs (one per line)")
     
     # Download options
-    parser.add_argument("--quality", "-q", default="1080p", 
-                       choices=["360p", "480p", "720p", "1080p", "2k", "4k"],
-                       help="Video quality preference")
+    parser.add_argument("--quality", "-q", default="1080p",
+                       choices=["360p", "480p", "720p", "1080p", "2k", "4k", "best"],
+                       help="Video quality preference (best = highest available)")
     parser.add_argument("--cookies", help="Path to cookies.txt file for authentication")
     parser.add_argument("--force", action="store_true", 
                        help="Force redownload existing videos")

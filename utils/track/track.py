@@ -2,6 +2,8 @@ import argparse
 from typing import Dict, Any
 import yaml
 import os
+import json
+import numpy as np
 from tqdm import tqdm
 import cv2
 from ultralytics import YOLO, RTDETR
@@ -71,6 +73,33 @@ def init_class_info(config):
     }
 
 
+def make_json_serializable(obj):
+    """Convert numpy arrays to JSON-serializable format."""
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, (np.int32, np.int64)):
+        return int(obj)
+    elif isinstance(obj, (np.float32, np.float64)):
+        return float(obj)
+    elif isinstance(obj, dict):
+        return {k: make_json_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [make_json_serializable(item) for item in obj]
+    return obj
+
+
+def save_tracks_timeline(tracks_timeline, output_video_path):
+    """Save tracks timeline as JSON with same name as video."""
+    base_path = os.path.splitext(output_video_path)[0]
+    tracks_path = f"{base_path}_tracks_timeline.json"
+    
+    serializable_tracks = make_json_serializable(tracks_timeline)
+    with open(tracks_path, 'w') as f:
+        json.dump(serializable_tracks, f, indent=2)
+    
+    logger.info(f"Tracks timeline saved to {tracks_path}")
+
+
 def run_yolo_detection(model, frame):
     """
     Run YOLO detection on a frame and return bboxes, confidences, class_ids, and class_probs.
@@ -101,42 +130,14 @@ def run_yolo_detection(model, frame):
         return None, None, None, None
 
 
-def process_frame(frame, model, detection_processor, tracker_wrapper, class_info, blend_pairs, frame_idx, show_blend_value=False):
+def process_frame(frame, model, detection_processor, tracker_wrapper, class_info,  frame_idx):
     bboxes, confidences, class_ids, class_probs = run_yolo_detection(model, frame)
-    if frame_idx < 5:
-        logger.debug(f"Frame {frame_idx}: YOLO detections:")
-        logger.debug(f"  bboxes: {bboxes}")
-        logger.debug(f"  class_ids: {class_ids}")
-        if class_probs is not None:
-            for i, probs in enumerate(class_probs):
-                print(f"  Detection {i} class_probs: {probs}")
     detections = []
     if bboxes is not None:
         detections = detection_processor.process_detections(bboxes, confidences, class_ids)
-        # Add blend metrics for each detection
-        if class_probs is not None:
-            for i, det in enumerate(detections):
-                det['blend_metrics'] = {}
-                for pair in blend_pairs:
-                    a, b = pair
-                    pa = class_probs[i, a] if a < class_probs.shape[1] else 0.0
-                    pb = class_probs[i, b] if b < class_probs.shape[1] else 0.0
-                    if pa == 0 and pb == 0:
-                        blend = 0.5
-                    else:
-                        blend = pb / (pa + pb)
-                    det['blend_metrics'][tuple(pair)] = blend
-    if frame_idx < 5:
-        logger.debug(f"Frame {frame_idx}: Processed detections:")
-        for det in detections:
-            logger.debug(f"  {det}")
     tracks = tracker_wrapper.update(detections)
-    if frame_idx < 5:
-        logger.debug(f"Frame {frame_idx}: Tracker output:")
-        for tr in tracks:
-            logger.debug(f"  {tr}")
-    rendered = draw_tracks(frame, tracks, class_info, blend_pairs=blend_pairs, show_blend_value=show_blend_value)
-    return rendered
+    rendered = draw_tracks(frame, tracks, class_info)
+    return {'rendered':rendered, 'tracks':tracks}
 
 
 def run_tracking_pipeline(config: Dict[str, Any]) -> None:
@@ -149,11 +150,16 @@ def run_tracking_pipeline(config: Dict[str, Any]) -> None:
     detection_processor, base_mapper = init_detection_processor(config['base_class_mapping'])
     tracker_wrapper = init_tracker(fps, config.get('bytetrack_params', {}), base_mapper)
     class_info = init_class_info(config)
-
+    tracks_timeline = []
     for i, frame in enumerate(tqdm(read_video_frames(config['input_video']), total=frame_count, desc="Tracking video")):
-        rendered = process_frame(frame, model, detection_processor, tracker_wrapper, class_info, config['blend_pairs'], i)
-        writer.write(rendered)
+        result_frame = process_frame(frame, model, detection_processor, tracker_wrapper, class_info, i)
+        writer.write(result_frame['rendered'])
+        tracks_timeline.append(result_frame['tracks'])
     writer.release()
+    
+    # Save tracks timeline data
+    save_tracks_timeline(tracks_timeline, config['output_video'])
+    
     logger.info(f"Tracked video written to {config['output_video']}")
 
 
