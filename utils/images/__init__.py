@@ -1,3 +1,0 @@
-"""
-Image utilities package initialization.
-""" 
