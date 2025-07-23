@@ -1,6 +1,6 @@
 input_video: ./IMG_4714_3.0_6.0.MOV
 output_video: ./output.mkv
-yolo_model_path: runs/detect/train3/weights/best.pt
+yolo_model_path: new_runs/detect/train3/weights/best.pt
 
 class_info:
   0:
