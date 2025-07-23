@@ -5,51 +5,47 @@
 ## Download
 
 youtube:
-
-`python utils/youtube/download_videos.py --file utils/youtube/urls.txt`
-
-local:
-put all local files in your well named folder.
-
-## Cut videos
-(optional)
-`python utils/video/trim_videos_to_duration.py path_to_video_folder --max-duration 120 --output-dir trimmed_videos`
-
-## Analyze videos 
-
-`python utils/dataset/video_folder_report.py youtube_downloads/videos`
-
-## extract frames 
-
-`python utils/video/extract_frames.py --directory downloaded_data/videos --step 15`
+`python utils/youtube/download_videos.py --file utils/youtube/urls.txt --output downloads/videos/ --quality 1080p`
 
 ## Process dataset
 reorganize dataset as such
-`python utils/dataset/raw_dataset/process_raw_dataset.py path_to_dataset`
+`python utils/dataset/raw_dataset/process_raw_dataset.py downloads/`
+or put manually in final dataset structure
 
-## Analyze raw dataset 
-then analyze it:
-`python utils/dataset/analyze_raw_dataset.py path_to_dataset`
+now we have
+downloads/
+    - images/
+    - videos/
 
-## Extract frames from videos
+## Analyze videos 
 
-`python utils/video/extract_frames.py --directory tell_tales_seb_01_07_2025/videos/ --step 10`
+`python utils/dataset/video_folder_report.py downloads/videos`
 
-## Filter with model
+## extract frames
+choose step
+`python utils/video/extract_frames.py --directory downloads/videos --step 15`
 
-`python utils/dataset/filter_photos_with_model.py path_to_photo_folder --confidence 0.1`
+## filter images by time (optional)
+`python utils/dataset/clean_images_by_intervals.py --txt_file utils/youtube/urls.txt --folder downloads/video_frames_extracted/videos/`
 
 ## Unnest folder
+`python utils/dataset/unnest.py --input downloads/video_frames_extracted/ --output flattened_images_folder`
 
-`python utils/dataset/unnest.py --input tell_tales_seb_01_07_2025 --output flattened_images`
+## Image only : add frame_ prefix
+`python utils/images/add_frame_prefix.py downloads/images`
+
+`cp -r -v downloads/images flattened_images_folder`
+
+## Filter with model
+`python utils/dataset/filter_photos_with_model.py flattened_images_folder --confidence 0.1`
 
 ## Harmonize source distribution
 
 analyze source repartition :
-`python utils/dataset/image_source_report.py flattened_images`
+`python utils/dataset/image_source_report.py flattened_images_folder`
 
 put a limit to image per source to avoid overrepresentation :
-`python utils/dataset/harmonize_source_distribution.py flattened_images/ --output-dir final_images --max-per-source 30`
+`python utils/dataset/harmonize_source_distribution.py flattened_images_folder/ --output-dir final_images --max-per-source 30`
 
 # Sync to AWS
 

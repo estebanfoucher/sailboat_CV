@@ -17,6 +17,12 @@ import yt_dlp
 from tqdm import tqdm
 import argparse
 import cv2
+
+# Add project root to Python path for imports
+script_dir = Path(__file__).resolve().parent
+project_root = script_dir.parent.parent
+sys.path.insert(0, str(project_root))
+
 from utils.youtube.youtube_utils import get_video_id_from_url
 
 # Configure logging

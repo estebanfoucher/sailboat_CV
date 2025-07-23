@@ -1,7 +1,7 @@
 input_video: to_track/IMG_9496_0.0_3.0.MOV
 output_video: output/output.mp4
-model_path: runs/detect/train-3-classes-small-augment/weights/3-classes-small-augment.pt
-archi: yolo
+model_path: run_new/runs/train/rtdetr_exp/weights/best.pt
+archi: rt-detr
 
 class_info:
   0:
