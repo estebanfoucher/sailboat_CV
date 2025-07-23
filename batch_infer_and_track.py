@@ -41,13 +41,13 @@ def save_config(config, path):
     with open(path, 'w') as f:
         yaml.safe_dump(config, f)
 
-def run_tracking_on_video(video_path, output_path, config_template, yolo_model_path):
+def run_tracking_on_video(video_path, output_path, config_template, model_path):
     # Prepare temp config
     with tempfile.NamedTemporaryFile('w', suffix='.yml', delete=False) as tmp:
         config = config_template.copy()
         config['input_video'] = os.path.abspath(video_path)
         config['output_video'] = os.path.abspath(output_path)
-        config['yolo_model_path'] = yolo_model_path
+        config['model_path'] = model_path
         save_config(config, tmp.name)
         tmp_config_path = tmp.name
     print(f"[TRACK] {video_path} -> {output_path}")
@@ -94,7 +94,7 @@ def main():
 
     # Load config template
     config_template = load_config(CONFIG_PATH)
-    yolo_model_path = args.yolo_model or config_template['yolo_model_path']
+    model_path = args.yolo_model or config_template['model_path']
 
     # Ask for confidence threshold if not provided
     confidence_threshold = args.confidence
@@ -106,7 +106,7 @@ def main():
             confidence_threshold = 0.25
 
     # Prepare YOLO model and detection processor for images
-    yolo_model = YOLO(yolo_model_path)
+    yolo_model = YOLO(model_path)
     base_mapper = BaseClassMapper()
     detection_processor = DetectionProcessor(base_mapper)
     class_info = {k: {'name': v['name'], 'color': tuple(v['color'])} for k, v in config_template['class_info'].items()}
@@ -117,7 +117,7 @@ def main():
             in_path = os.path.join(root, fname)
             if is_video(fname):
                 out_path = copy_structure_and_get_output_path(in_path, input_folder, output_folder)
-                run_tracking_on_video(in_path, out_path, config_template, yolo_model_path)
+                run_tracking_on_video(in_path, out_path, config_template, model_path)
             elif is_image(fname):
                 out_path = copy_structure_and_get_output_path(in_path, input_folder, output_folder)
                 run_inference_on_image(in_path, out_path, yolo_model, detection_processor, class_info, confidence_threshold)

@@ -1,6 +1,7 @@
-input_video: ./IMG_4714_3.0_6.0.MOV
-output_video: ./output.mkv
-yolo_model_path: new_runs/detect/train3/weights/best.pt
+input_video: to_track/IMG_9496_0.0_3.0.MOV
+output_video: output/output.mp4
+model_path: runs/detect/train-3-classes-small-augment/weights/3-classes-small-augment.pt
+archi: yolo
 
 class_info:
   0:
