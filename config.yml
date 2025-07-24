@@ -1,6 +1,6 @@
-input_video: data/videos/example/2Ce-CKKCtV4_35.0_40.0.mp4
-output_video: output/2Ce-CKKCtV4_35.0_40.0.mp4
-model_path: runs/detect/rtdetr_00/weights/best.pt
+input_video: data/videos/example/kmEnYKknoKg_4.0_9.0.mp4
+output_video: output/kmEnYKknoKg_4.0_9.0.mp4
+model_path: runs/detect/rtdetr_01/weights/best.pt
 archi: rt-detr
 
 # BGR
