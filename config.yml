@@ -1,5 +1,5 @@
-input_video: data/videos/example/kmEnYKknoKg_4.0_9.0.mp4
-output_video: output/kmEnYKknoKg_4.0_9.0.mp4
+input_video: data/clips/2Ce-CKKCtV4.mp4
+output_video: output/2Ce-CKKCtV4.mp4
 model_path: runs/detect/rtdetr_01/weights/best.pt
 archi: rt-detr
 
@@ -14,11 +14,6 @@ class_info:
   2:
     name: pennon_leech
     color: [255, 0, 0]
-
-base_class_mapping:
-  0: 0
-  1: 0
-  2: 2
 
 bytetrack_params:
   track_thresh: 0.5

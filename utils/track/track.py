@@ -9,8 +9,7 @@ import cv2
 from ultralytics import YOLO, RTDETR
 from video_io import get_video_properties, read_video_frames, open_video_writer
 from render import draw_tracks
-from tracking import DetectionProcessor, BaseClassMapper, ByteTrackWrapper
-from byte_tracker import BYTETracker
+from byte_tracker import ByteTracker
 from loguru import logger
 
 
@@ -35,6 +34,14 @@ def resolve_all_paths(config, project_root):
     config['model_path'] = resolve_path(config['model_path'])
     return config
 
+def init_tracker(fps, bytetrack_params):
+    tracker = ByteTracker(
+        frame_rate=fps,
+        track_thresh=bytetrack_params.get('track_thresh'),
+        track_buffer=bytetrack_params.get('track_buffer'),
+        match_thresh=bytetrack_params.get('match_thresh')
+    )
+    return tracker
 
 def load_model(model_path, archi='yolo'):
     if archi=='yolo':
@@ -43,34 +50,8 @@ def load_model(model_path, archi='yolo'):
         return RTDETR(model_path)
     return None
 
-
-def init_detection_processor(base_class_mapping):
-    base_mapper = BaseClassMapper()
-    base_mapper.class_mapping = base_class_mapping
-    return DetectionProcessor(base_mapper), base_mapper
-
-
-def init_tracker(fps, bytetrack_params, base_mapper):
-    tracker = BYTETracker(
-        frame_rate=fps,
-        track_thresh=bytetrack_params.get('track_thresh', 0.2),
-        track_buffer=bytetrack_params.get('track_buffer', 30),
-        match_thresh=bytetrack_params.get('match_thresh', 0.8)
-    )
-    return ByteTrackWrapper(tracker, base_mapper)
-
-
 def init_writer(output_video, fps, frame_size):
     return open_video_writer(output_video, fps, frame_size)
-
-
-def init_class_info(config):
-    # Enforce coloring convention
-    return {
-        0: {"name": config['class_info'][0]['name'], "color": (0, 255, 0)},   # green
-        1: {"name": config['class_info'][1]['name'], "color": (0, 0, 255)},   # red
-        2: {"name": config['class_info'][2]['name'], "color": (255, 0, 0)},   # blue
-    }
 
 
 def make_json_serializable(obj):
@@ -100,42 +81,45 @@ def save_tracks_timeline(tracks_timeline, output_video_path):
     logger.info(f"Tracks timeline saved to {tracks_path}")
 
 
-def run_yolo_detection(model, frame):
-    """
-    Run YOLO detection on a frame and return bboxes, confidences, class_ids, and class_probs.
-    Args:
-        model: YOLO model.
-        frame (np.ndarray): Input frame (BGR).
-    Returns:
-        bboxes (np.ndarray): (N, 4) array of [x1, y1, x2, y2].
-        confidences (np.ndarray): (N,) array of confidence scores.
-        class_ids (np.ndarray): (N,) array of class IDs.
-        class_probs (np.ndarray): (N, num_classes) array of class probabilities.
-    """
-    results = model(frame)
+def format_inference_results(results):
     boxes = results[0].boxes
     if boxes is not None and len(boxes) > 0:
         bboxes = boxes.xyxy.cpu().numpy()
         confidences = boxes.conf.cpu().numpy()
         class_ids = boxes.cls.cpu().numpy()
-        # Extract class probabilities from boxes.data if available
-        raw = boxes.data.cpu().numpy()
-        print(f"boxes.data shape: {raw.shape}")
-        if raw.shape[1] > 6:
-            class_probs = raw[:, 6:]
-        else:
-            class_probs = None
-        return bboxes, confidences, class_ids, class_probs
+        
+        return bboxes, confidences, class_ids
     else:
-        return None, None, None, None
+        return None, None, None
 
+def process_detections(bboxes: np.ndarray, 
+                          confidences: np.ndarray, 
+                          class_ids: np.ndarray):
+        """
+        Convert raw detection arrays to structured format.
+        
+        Args:
+            bboxes: (N, 4) array of bounding boxes [x1, y1, x2, y2]
+            confidences: (N,) array of confidence scores
+            class_ids: (N,) array of class IDs
+        """
+        detections = []
+        
+        for i in range(len(bboxes)):
+            detection = {
+                'bbox': bboxes[i],
+                'confidence': confidences[i],
+                'class_id': int(class_ids[i]),
+                'original_class_id': int(class_ids[i])
+            }
+            detections.append(detection)
+        
+        return detections
 
-def process_frame(frame, model, detection_processor, tracker_wrapper, class_info,  frame_idx):
-    bboxes, confidences, class_ids, class_probs = run_yolo_detection(model, frame)
-    detections = []
-    if bboxes is not None:
-        detections = detection_processor.process_detections(bboxes, confidences, class_ids)
-    tracks = tracker_wrapper.update(detections)
+def process_frame(frame, model, tracker, class_info):
+    results = model(frame)
+    bboxes, confidences, class_ids = format_inference_results(results)
+    tracks = tracker.update(process_detections(bboxes, confidences, class_ids))
     rendered = draw_tracks(frame, tracks, class_info)
     return {'rendered':rendered, 'tracks':tracks}
 
@@ -147,12 +131,12 @@ def run_tracking_pipeline(config: Dict[str, Any]) -> None:
     writer = init_writer(config['output_video'], fps, frame_size)
     logger.debug(f"[Pipeline] Video FPS detected: {fps}")
     model = load_model(config['model_path'], config['archi'])
-    detection_processor, base_mapper = init_detection_processor(config['base_class_mapping'])
-    tracker_wrapper = init_tracker(fps, config.get('bytetrack_params', {}), base_mapper)
-    class_info = init_class_info(config)
+    tracker = init_tracker(fps, config['bytetrack_params'])
+    class_info = config['class_info']
     tracks_timeline = []
+    
     for i, frame in enumerate(tqdm(read_video_frames(config['input_video']), total=frame_count, desc="Tracking video")):
-        result_frame = process_frame(frame, model, detection_processor, tracker_wrapper, class_info, i)
+        result_frame = process_frame(frame, model, tracker, class_info)
         writer.write(result_frame['rendered'])
         tracks_timeline.append(result_frame['tracks'])
     writer.release()

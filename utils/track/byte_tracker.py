@@ -35,7 +35,7 @@ class STrack:
         x, y, w, h = self.tlwh
         return [x, y, x + w, y + h]
 
-class BYTETracker:
+class ByteTracker:
     def __init__(self, track_thresh=0.5, track_buffer=30, match_thresh=0.8, frame_rate=30):
         self.track_thresh = track_thresh
         self.track_buffer = track_buffer
@@ -80,10 +80,6 @@ class BYTETracker:
         # Association with currently tracked tracks
         matches, u_track, u_detection = self._associate(self.tracked_stracks, det_stracks)
 
-        if self.frame_id <= 5:
-            logger.debug(f"[BYTETracker] Frame {self.frame_id}: matches={matches}, u_track={u_track}, u_detection={u_detection}")
-            logger.debug(f"  Tracked IDs: {[t.track_id for t in self.tracked_stracks]}")
-            logger.debug(f"  Detection classes: {[d.current_frame_class for d in det_stracks]}")
 
         # Update matched tracks
         for t_idx, d_idx in matches:
