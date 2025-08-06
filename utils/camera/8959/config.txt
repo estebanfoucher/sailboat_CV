@@ -1,3 +1,0 @@
-1080p
-fov linear
-no smoothing

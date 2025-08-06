@@ -1,0 +1,4 @@
+1080p
+fov linear
+no smoothing
+zoom x1.0
