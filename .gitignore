@@ -24,6 +24,10 @@
 !stereo_calibration/**
 !mono_calibration/
 !mono_calibration/**
+!SuperGluePretrainedNetwork/
+!SuperGluePretrainedNetwork/**
+!depth_estimator/
+!depth_estimator/**
 
 # Whitelist specific root-level files
 !CHANGELOG.md
