@@ -1,0 +1,57 @@
+# Stereo Image Capture Configuration
+
+streams:
+  # Camera 1 configuration
+  - name: "camera1"
+    url: "rtmp://192.168.1.41/live/stream_1"  # RTMP stream
+    
+  # Camera 2 configuration  
+  - name: "camera2"
+    url: "rtmp://192.168.1.41/live/stream_2"  # RTMP stream
+
+capture:
+  # Capture settings
+  timeout_seconds: 10  # Maximum time to wait for capture
+  quality: 1  # JPEG quality (1-31, lower is better)
+  format: "jpg"  # Output image format
+  
+  # Synchronization settings
+  max_delay_ms: 200  # Maximum acceptable delay between captures
+  retry_failed: true  # Retry failed captures
+  
+  # Image processing
+  resize: null  # Resize images (e.g., "1920x1080" or null for no resize)
+  crop: null  # Crop images (e.g., "100,100,800,600" or null for no crop)
+
+apriltag:
+  # AprilTag detection settings
+  tag_family: "tag36h11"  # Options: tag16h5, tag25h9, tag36h11, tagCircle21h7, tagStandard41h12
+  target_tag_id: 42  # Specific tag ID to detect (set to null to detect any tag)
+  decimation: 1.0  # Detection resolution decimation (1.0 = full resolution)
+  blur: 0.0  # Gaussian blur sigma
+  refine_edges: True  # Whether to refine edge detection
+  min_decision_margin: 10.0  # Minimum decision margin for detection confidence
+  tag_size_meters: 0.078  # Physical size of the April tag in meters (7.8cm)
+
+output:
+  # Output directory for captured images and data
+  directory: "captured_image_pairs"
+  
+  # File naming
+  filename_format: "{capture_id}_{stream_name}_{timestamp}.{format}"
+  
+  # Data storage
+  save_metadata: true  # Save capture metadata
+  save_timestamps: true  # Save detailed timestamps
+  save_config: true  # Save configuration with captures
+
+calibration:
+  # Camera intrinsics paths for stereo calibration
+  intrinsics1: "../utils/camera/8959/intrinsics.json"  # Path to camera 1 intrinsics
+  intrinsics2: "../utils/camera/3056/intrinsics.json"  # Path to camera 2 intrinsics
+
+logging:
+  # Logging configuration
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  save_logs: true  # Save logs to file
+  log_file: "capture.log" 

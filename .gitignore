@@ -20,6 +20,10 @@
 !labels/
 !labels/**
 !config.yml
+!stereo_calibration/
+!stereo_calibration/**
+!mono_calibration/
+!mono_calibration/**
 
 # Whitelist specific root-level files
 !CHANGELOG.md
