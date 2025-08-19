@@ -31,7 +31,7 @@ apriltag:
   blur: 0.0  # Gaussian blur sigma
   refine_edges: True  # Whether to refine edge detection
   min_decision_margin: 10.0  # Minimum decision margin for detection confidence
-  tag_size_meters: 0.078  # Physical size of the April tag in meters (7.8cm)
+  tag_size_meters: 0.0775  # Physical size of the April tag in meters (7.8cm)
 
 output:
   # Output directory for captured images and data
@@ -47,8 +47,8 @@ output:
 
 calibration:
   # Camera intrinsics paths for stereo calibration
-  intrinsics1: "../utils/camera/8959/intrinsics.json"  # Path to camera 1 intrinsics
-  intrinsics2: "../utils/camera/3056/intrinsics.json"  # Path to camera 2 intrinsics
+  intrinsics1: "../mono_calibration/8959/intrinsics.json"  # Path to camera 1 intrinsics
+  intrinsics2: "../mono_calibration/3056/intrinsics.json"  # Path to camera 2 intrinsics
 
 logging:
   # Logging configuration

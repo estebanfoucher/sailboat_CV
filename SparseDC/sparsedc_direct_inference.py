@@ -81,13 +81,10 @@ class SparseDCDirectInference:
             # Raw PyTorch state dict
             state_dict = torch.load(self.model_path, map_location='cpu', weights_only=False)
         
-        # Filter out refiner-related weights to avoid DCN dependency
-        filtered_state_dict = {}
-        for k, v in state_dict.items():
-            if not any(refiner_key in k for refiner_key in ['refiner', 'guide_layer']):
-                filtered_state_dict[k] = v
+        # Use all weights including refiner weights now that DCN is compiled
+        filtered_state_dict = state_dict
         
-        print(f"   Loaded {len(state_dict)} keys, filtered to {len(filtered_state_dict)} keys (removed refiner)")
+        print(f"   Loaded {len(state_dict)} keys (including refiner weights)")
         
         # Create model architecture
         model = self._create_model_architecture()
@@ -124,12 +121,33 @@ class SparseDCDirectInference:
             is_gate_fuse=True
         )
         
+        # Import and create the NLSPN refiner
+        try:
+            from src.models.refiners.NLSPN import NLSPN
+            
+            # Create a simple args object for NLSPN
+            class Args:
+                def __init__(self):
+                    self.prop_time = 12  # Number of propagation iterations
+                    self.affinity = 'TGASS'  # Affinity type
+                    self.conf_prop = True  # Use confidence propagation
+                    self.affinity_gamma = 0.25  # Affinity gamma parameter
+                    self.legacy = False  # Legacy mode flag
+                    self.preserve_input = True  # Preserve input during propagation
+            
+            args = Args()
+            refiner = NLSPN(args, ch_g=8, ch_f=1, k_g=3, k_f=3)  # Match checkpoint dimensions
+            print("✅ NLSPN refiner loaded successfully")
+        except ImportError as e:
+            print(f"⚠️  Could not load NLSPN refiner: {e}")
+            refiner = None
+        
         # Main model
         model = Uncertainty_(
             backbone_l=backbone_l,
             backbone_g=backbone_g,
             decode=decode,
-            refiner=None,  # Disable refiner to avoid DCN dependency
+            refiner=refiner,  # Enable refiner now that DCN is compiled
             criterion=None,  # Not needed for inference
             is_padding=False,  # No padding for custom resolution
             padding_size=self.resolution,

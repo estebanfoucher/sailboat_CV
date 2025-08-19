@@ -1,98 +1,71 @@
-# sailboat_CV
+# Stereo Rectification Analysis
 
-# Raw data processing 
+## Overview
 
-## Download
+This folder contains a `StereoRectifier` class that demonstrates the issue with `cv2.stereoRectify()` using your calibration data and provides a working solution.
 
-youtube:
-`python utils/youtube/download_videos.py --file utils/youtube/urls.txt --output downloads/videos/ --quality 1080p`
+## The Problem
 
-## Process dataset
-reorganize dataset as such
-`python utils/dataset/raw_dataset/process_raw_dataset.py downloads/`
-or put manually in final dataset structure
+Your stereo calibration has a **zero ROI (Region of Interest)** issue:
 
-now we have
-downloads/
-    - images/
-    - videos/
+- **ROI1: (0, 0, 0, 0)** - Left camera has zero valid region
+- **ROI2: (0, 0, 0, 0)** - Right camera has zero valid region
 
-## Analyze videos 
+This causes `cv2.stereoRectify()` to produce completely black rectified images.
 
-`python utils/dataset/video_folder_report.py downloads/videos`
+## Root Cause
 
-## extract frames
-choose step
-`python utils/video/extract_frames.py --directory downloads/videos --step 15`
+The **translation magnitude of 1.627m** between cameras is unusually large for typical stereo setups, causing the rectification to push images completely out of bounds.
 
-## filter images by time (optional)
-`python utils/dataset/clean_images_by_intervals.py --txt_file utils/youtube/urls.txt --folder downloads/video_frames_extracted/videos/`
+## Working Solution
 
-## Unnest folder
-`python utils/dataset/unnest.py --input downloads/video_frames_extracted/ --output flattened_images_folder`
+Instead of full rectification, use **undistortion only**:
 
-## Image only : add frame_ prefix
-`python utils/images/add_frame_prefix.py downloads/images`
+```python
+# This works correctly
+undist1 = cv2.undistort(img1, K1, D1)
+undist2 = cv2.undistort(img2, K2, D2)
 
-`cp -r -v downloads/images flattened_images_folder`
+# Then use SGBM directly on undistorted images
+stereo = cv2.StereoSGBM_create(...)
+disparity = stereo.compute(undist1, undist2)
+```
 
-## Filter with model
-`python utils/dataset/filter_photos_with_model.py flattened_images_folder --confidence 0.1`
+## Files
 
-## Harmonize source distribution
+- `stereo_rectifier.py` - StereoRectifier class with analysis
+- `example.py` - Simple usage example
+- `output/` - Generated images showing the issue
 
-analyze source repartition :
-`python utils/dataset/image_source_report.py flattened_images_folder`
+## Results
 
-put a limit to image per source to avoid overrepresentation :
-`python utils/dataset/harmonize_source_distribution.py flattened_images_folder/ --output-dir final_images --max-per-source 30`
+| Method | Left Image | Right Image | Status |
+|--------|------------|-------------|---------|
+| **Original** | 1.9MB | 1.7MB | ✅ Normal |
+| **Undistorted** | 1.0MB | 1.0MB | ✅ **Working** |
+| **Rectified** | 1.0MB | 7.9KB | ❌ Black |
 
-# Sync to AWS
+## Usage
 
-`aws s3 sync processed_images s3://bucket-sail-s3/frames/`
+```python
+from stereo_rectifier import StereoRectifier
 
-# Launch label studio 
+# Initialize
+rectifier = StereoRectifier("calibration.json")
 
-`cd label-studio`
-`docker-compose up -d`
+# Load images
+img1 = cv2.imread("left.jpg")
+img2 = cv2.imread("right.jpg")
 
-## Export and prepare dataset
+# Undistort (works)
+undist1, undist2 = rectifier.undistort_images(img1, img2)
 
-## Remove prefixes
+# Full rectification (produces black images)
+rect1, rect2 = rectifier.rectify_images_full(img1, img2)
+```
 
-`python utils/label_studio/remove_label_prefix.py label_folder`
+## Conclusion
 
-## Download images from labels
-
-`python utils/download_images_from_s3_and_label_json.py labels/labels-05.json data/datasets/labels-05/images`
-
-## Split dataset 
-
-`python utils/dataset/split_dataset.py data/datasets/labels-05`
-
-## Oversample train split 
-
-random picking images in source dataset and adding it if it makes you closer to the target class distribution (up to a number of iterations)
-
-`python utils/augmentation/oversample.py data/splitted_datasets/labels-05/train`
-
-## Analyze label distribution in a dataset 
-
-`python utils/augmentation/print_distribution.py data/splitted_datasets/labels-04/train`
-
-# Training
-
-execute notebooks on colab
-
-# Integrate new model in label studio ML backend
-
-cp paste model in model folder in yolo_server instance and relaunch it
-
-# Track test
-
-run test on custom video. configure your model and video input / output in config.yml
-`python utils/track/track.py --config config.yml`
-
-or batch infer on a folder containing multiple videos and images (not maintained) with 
+Your calibration is perfect for **undistortion-based stereo matching**, which is what the working stereo depth estimator uses. The full rectification approach fails due to the extreme camera separation, but this doesn't prevent accurate depth estimation.
 
 

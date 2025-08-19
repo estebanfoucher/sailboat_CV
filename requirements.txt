@@ -12,3 +12,4 @@ loguru
 pyyaml
 scipy==1.9.3
 scikit-learn
+pytorch-lightning==1.9.5
