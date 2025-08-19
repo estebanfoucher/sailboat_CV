@@ -342,6 +342,55 @@ class SparseDCDirectInference:
         print(f"   Image tensor shape: {image_tensor.shape}")
         print(f"   Depth tensor shape: {depth_tensor.shape}")
         
+        # Save the actual input tensors that feed the model for analysis
+        print("💾 Saving model input visualizations...")
+        
+        # Save input tensors
+        torch.save(image_tensor, os.path.join(debug_dir, "model_input_image_tensor.pt"))
+        torch.save(depth_tensor, os.path.join(debug_dir, "model_input_depth_tensor.pt"))
+        torch.save(sample, os.path.join(debug_dir, "model_input_sample.pt"))
+        
+        # Convert tensors to numpy and save as images for visualization
+        import matplotlib.pyplot as plt
+        
+        # Save input image
+        input_image_np = image_tensor[0].permute(1, 2, 0).cpu().numpy()
+        input_image_np = (input_image_np * 255).astype(np.uint8)
+        plt.figure(figsize=(15, 8))
+        plt.imshow(input_image_np)
+        plt.title(f'Model Input Image: {input_image_np.shape}')
+        plt.axis('off')
+        plt.tight_layout()
+        plt.savefig(os.path.join(debug_dir, "model_input_image.png"), dpi=150, bbox_inches='tight')
+        plt.close()
+        
+        # Save input sparse depth
+        input_depth_np = depth_tensor[0, 0].cpu().numpy()
+        plt.figure(figsize=(15, 8))
+        plt.imshow(input_depth_np, cmap='plasma', vmin=0, vmax=input_depth_np.max() if input_depth_np.max() > 0 else 1)
+        plt.title(f'Model Input Sparse Depth: {input_depth_np.shape}, Non-zero: {np.count_nonzero(input_depth_np)}')
+        plt.colorbar(label='Depth (m)')
+        plt.tight_layout()
+        plt.savefig(os.path.join(debug_dir, "model_input_sparse_depth.png"), dpi=150, bbox_inches='tight')
+        plt.close()
+        
+        # Also save sparse depth points as scatter plot
+        nonzero_coords = np.nonzero(input_depth_np)
+        if len(nonzero_coords[0]) > 0:
+            plt.figure(figsize=(15, 8))
+            plt.imshow(np.ones_like(input_depth_np) * 0.8, cmap='gray', alpha=0.3)
+            scatter = plt.scatter(nonzero_coords[1], nonzero_coords[0], 
+                                c=input_depth_np[nonzero_coords], 
+                                cmap='plasma', s=30, alpha=0.8)
+            plt.title(f'Model Input Sparse Points: {len(nonzero_coords[0])} points')
+            plt.colorbar(scatter, label='Depth (m)')
+            plt.gca().invert_yaxis()
+            plt.tight_layout()
+            plt.savefig(os.path.join(debug_dir, "model_input_sparse_points.png"), dpi=150, bbox_inches='tight')
+            plt.close()
+        
+        print(f"💾 Saved model input visualizations to: {debug_dir}/")
+        
         # Run inference
         try:
             with torch.no_grad():
