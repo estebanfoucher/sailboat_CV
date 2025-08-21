@@ -28,6 +28,8 @@
 !SuperGluePretrainedNetwork/**
 !depth_estimator/
 !depth_estimator/**
+!results/
+!results/**
 
 # Whitelist specific root-level files
 !CHANGELOG.md
